@@ -12,8 +12,6 @@ It should be noted that we are still using a Deep Ensemble instead of a \acs{LA}
 
 We start by defining a couple of metrics to quantify if filtering the generated dataset brings it closer to the reference distribution. We are essentially trying to get an equivalent to the \acs{FPR} metrics for the toy experiment.
 
-% We define 3 metrics to quantify how well the filtered generated dataset matches the reference distribution.
-
 \paragraph{Log-Likelihood}
 
 We know the analytical form of the reference distribution, we can easily evaluate the likelihood of a point $x \in \mathbb{R}^2$ being part of this dataset.
@@ -55,16 +53,6 @@ While this successfully captures inter-mode coverage, it ignores intra-mode vari
 
 First, we assign each generated sample to its closest mode. Then for each mode we compute its variance across its associated generated samples. We then take the average of the per mode variance ($\hat{\sigma}^2 = \text{empirical variance}$) and compare it to the reference distribution's mode variance $\sigma^2$ via a variance ratio $r=\frac{\hat{\sigma}^2}{\sigma^2}$. We then take the averrage of this variance ratio across all the modes.
 
-% \paragraph{Maximum Mean Discrepancy (MMD)}
-% As a bonus, more conventional metric, we can use MMD
-% The MMD works with a kernel function. 
-
-% A standard kernel to use is the Radial Basis Function (RBF) kernel. The only parameter we have to set is $\gamma$ in $k(x,y) = e^{-\gamma ||x-y||^2}$
-
-% A method to get a $\gamma$ parameter giving an overall good metric for the dataset is $\gamma = \frac{1}{2 \cdot M}$ with M being the median of the pairwise distances between all points in the dataset. In our case we use $\gamma = 0.2$.
-
-% It should be noted that such way of calculating $\gamma$ is dominated by inter-mode distance.
-
 \paragraph{Maximum Mean Discrepancy (MMD)}
 Maximum Mean Discrepancy (MMD) is a statistical metric used to determine how different two probability distributions are from one another. Intuitively, it measures this discrepancy by comparing the means of the two distributions after mapping their samples into a high-dimensional feature space (a Reproducing Kernel Hilbert Space). If the mean embeddings of the two distributions are identical in this sufficiently rich space, the distributions themselves are considered identical.
 
@@ -87,21 +75,10 @@ We can end this section by drawing parallels between the \acs{FPR} metrics and t
 \end{itemize}
 
 
-% We have to decide the scale of this RBF kernel as well. If we only had one metric, a good choice would be to base this scale out of the average distance between points. But since are specifically targeting the intra-mode variance, we will base the scale parameter on the average distance between points of the same mode.
 
 \section{Metrics Results}
 
-% First, before looking at any of the metrics we just defined, let's draw an histogram of the uncertainty scores distribution to get more intuition of what we are trying to filter out \autoref{fig:toy_uncertainty_dist}.
-
-
-% But first, after computing the generative uncertainty, we can get the distribution of the uncertainty with an histogram.
-
-
-% From \autoref{fig:toy_uncertainty_dist}, we can see that we have a tail of high uncertainty samples above $-8$. which coincides with a percentile threshold of 77.5.
-
 Now let's use the metrics we just defined, and try to explain how filtering with Deep Ensemble based \acs{GU} affects the resulting dataset.
-
-% We can further explore how the filtered dataset evolves with respect to the percentile threshold with the metrics we defined (\autoref{sub:toy_metrics})
 
 \begin{figure}[!htbp]
     \centering
@@ -121,11 +98,6 @@ With \autoref{fig:toy_gmm_perf_de}, we observe that the benefits of filtering ou
 
 We can draw an histogram of the uncertainty scores distribution to get more insight (\autoref{fig:toy_uncertainty_dist}) and see that our observation is perfectly matched by a tail of uncertainty located above the 77th percentile (\textcolor{brown}{$p77.5$}).
 
-% With \autoref{fig:toy_gmm_perf_de}, we confirm that the benefits of filtering out bad samples stops when we get bellow the $\approx77 \%$ percentile, at which point the KL Divergence and Variance Ratio worsen at very quick rate. The sudden rise of the Log-Likelihood coincide with this loss in diversity, the filtering has started to eat through samples that are further to the modes but still valid making the concentration higher close to the modes.
-% The loss of variance ratio is unavoidable but is acceptable until it starts to fall at around $77 \%$.
-% This coincide well with the \textit{tail of high uncertainty} (hallucinations) observed in \autoref{fig:toy_uncertainty_dist}.
-
-% When can take a more qualitative look at the scatter plot of the actual samples datasets.
 We can now also look at a scatter plot of the filtered datasets at different percentiles to confirm what we observed in the metrics and histogram. We see in \autoref{fig:toy_filtered_data} that $77\%$ is indeed the sweet spot. Just above ($80\%$), we still have some obvious hallucinations. At $70\%$, we start to significantly reduce the size of some mode (intra-mode variance) non-uniformly across all modes (inter-mode).
 
 \begin{figure}[!htbp]
@@ -151,9 +123,6 @@ When looking at the generated dataset (\autoref{fig:toy_data}), it does not real
 
 In this section, we try to get an idea of what points are actually being filtered out by the Deep Ensemble based Generative Uncertainty.
 
-% We still assume that the filtering is looking for hallucinations defined as ``\textit{in-between nodes}'' points.
-% If we assume that the filtering metric should target points that are not close to any mode (close is defined as a radius of $6 \sigma$ around each mode, $\sigma$ being the variance of a mode) which we call ``hallucinations'', We can define 4 buckets to sort the generated points after filtering into:
-
 We define ``hallucination'' as a point $\boldsymbol{x}$ for which the distance the closest mode is $6\sigma$ with $\sigma$ being the variance of a mode. If we assume that the filtering metric should target ``hallucinations'', we can define 4 buckets to sort the generated points after filtering into:
 
 \begin{itemize}
@@ -162,14 +131,6 @@ We define ``hallucination'' as a point $\boldsymbol{x}$ for which the distance t
     \item \textcolor{orange}{Wrongfully Shaved Halos} (\textbf{FP}): points that were filtered out but weren't ``hallucinations''
     \item \textcolor{red}{Missed Hallucinations} (\textbf{FN}): points that were not filtered out but were ``hallucinations''
 \end{itemize}
-
-% \begin{figure}[!htbp]
-%     \centering
-%     \includegraphics[width=0.49\linewidth]{figures/toy_experiment/where_hallucinations.png}
-%     \includegraphics[width=0.49\linewidth]{figures/toy_experiment/sample_accross_models.png}
-%     \caption{Caption}
-%     \label{fig:where_hallucinations}
-% \end{figure}
 
 \begin{figure}[!htbp]
     \centering
@@ -289,19 +250,6 @@ When we use such an high prior, we are effectively making the covariance matrix 
 \begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
 Following what was said about using the \acs{MLE} instead of a \acs{MAP} trained model and the subsequent error made in the \acs{LA} that's growing with $\gamma$ (from \autoref{sub:la_trained_on_mle}), it could explain why only very high values of $\gamma$ actually work. Although the error in the \acs{LA} becomes massive, it does not matter since the we are essentially ignoring the inverse hessian computation of the log posterior in favor of an isotropic covariance matrix.
 \end{tcolorbox}
-% On of their observation was that having a flatter curvature landscape like we have in \autoref{fig:hessian_diag_values} reduces the performance gap between \acs{ICLA} and \acs{LLLA}. We therefore hypothesize that alternative fixes like temperature scaling that would preserve the hessian geometry could yield better results than \acs{ICLA} in our case.
-
-
-% \paragraph{The Danger of Flat Directions and Variance Explosion}
-% We analyzed the local curvature around the MAP estimate by extracting the statistical profile of the diagonal empirical Fisher matrix. While our toy network is relatively constrained overall (with a median curvature value of 59 across its 258 parameters), the spectrum is highly ill-conditioned. It exhibits an extreme dynamic range, stretching from sharp directions ($1.16 \times 10^5$) down to a virtually flat null-space ($5.12 \times 10^{-37}$). Crucially, approximately $7\%$ of the parameters lie in this flat region with curvature values below $10^{-4}$.
-
-% This ill-conditioned geometry causes a catastrophic failure during matrix inversion. When calculating the posterior covariance matrix $\Sigma_\theta = (H + \gamma I)^{-1}$, taking the inverse along these near-zero directions triggers a variance explosion. If the prior $\gamma$ is too low, the sampling algorithm assigns astronomically high variance to these specific weights, pushing the sampled models off the data manifold and into high-loss regions.
-
-% \subsection{The Brute-Force Fix: ICLA and Isotropic Perturbation}
-% Increasing the prior precision $\gamma$ solves this variance explosion by acting as an aggressive additive regularizer. An overwhelmingly large $\gamma$ (e.g., $10^7$) dominates both the flat and sharp eigenvalues of the Empirical Fisher. While this clamps the explosion, it also destroys the poorly conditioned, stretched geometry dictated by the Hessian, forcing the posterior to behave like a uniform, isotropic sphere. 
-
-% This geometric transformation mirrors the Identity Curvature Laplace Approximation (ICLA) \cite{zhdanov_identity_2024}. Designed for out of distribution (OOD) detection in classification tasks, ICLA intentionally bypasses the Hessian computation entirely, defining the posterior covariance explicitly as a scaled identity matrix ($\Sigma_\theta = \lambda I$).
-
 
 \paragraph{Hallucinations Filtering}
 
@@ -331,23 +279,12 @@ the metric gives us the ratio of identified hallucination out of all hallucinati
 
 \autoref{fig:llla_prior_abla_tp} shows us that higher prior \acs{LLLA} ($\simeq$ uniform diagonal covariance matrix) is better at filtering ``hallucinations'' than \acs{DE}. Looking closer, we see that \acs{DE} is eventually catching up but much later, this gap can be explained by the DE being able to filter out the full epistemic uncertainty (including samples that are valid but are associated to different modes across the $M+1$ models) (see \autoref{sec:toy_what_gu_filter}) while the \acs{LLLA} is blind to that part of uncertainty.
 
-% \autoref{fig:llla_prior_abla_tp} shows that a high prior LA (which mathematically mimics the uniform variance of ICLA) initially filters pure hallucinations better than the Deep Ensemble. By uniformly jittering the model weights, it provides just enough unstructured perturbation to trigger network sensitivity to severe out of distribution interpolations. However, as generative tasks require mapping broader epistemic uncertainty, discarding curvature is suboptimal. Deep Ensembles eventually catch up and surpass the high prior LA because they capture valid samples assigned to different modes, whereas the uniform covariance approach is too blunt and exclusively targets severe hallucinations.
-
 \subsection{The Temperature Fix} 
 
 We've shown that \acs{ICLA} makes up for an effective posterior approximation. But as explained previously from \parencite{zhdanov_identity_2024}, our hessian values spectrum suggest that the hessian geometry could actually be of use and should not be discarded.
-% As demonstrated, attempting to fix the variance explosion solely by pushing the prior $\gamma$ to extreme values (mimicking ICLA) successfully filters hallucinations but destroys the natural curvature of the loss landscape. 
 
-% Conversely, standard Laplace methods like Riemannian Laplace Approximations \parencite{bergamin_riemannian_2023, gegenfurtner_reducing_2026} attempt to navigate this curvature but remain complex.
 Mathematically the \acs{LA} being a simple 2nd order approximation in logarithm space of the posterior distribution around the MAP estimator means that in the immediate neighborhood of $\theta_{MAP}$ the approximation holds. We have observed that the covariance matrix $\Sigma_\theta=H^{-1}$ lead to sampling models too far from $\hat\theta$, this suggest scaling the covariance matrix with a temperature parameter $T_s$, in our case, we are talking about the \acs{CPE} cold posterior effect with $T_s < 1$ and $\hat{\Sigma}_{\theta} = T_s^2 \Sigma_\theta$. Where $\Sigma_\theta$ is computed with a reasonable prior that preserves the hessian geometry information while avoiding division by very small values.
 
-% To elegantly stabilize the LLLA while retaining the geometric knowledge of the Hessian, we must address two distinct problems simultaneously: the mathematical infinity of the null-space, and the physical magnitude of the weight updates. Our results show that the optimal configuration utilizes a synergistic combination of a moderate prior ($\gamma = 1.0$) and a low sample temperature ($T_s = 0.01$). 
-
-% Mathematically, this operates as a two-step stabilization mechanism:
-% \begin{enumerate}
-%     \item \textbf{The Variance Clamp ($\gamma = 1.0$):} A moderate prior acts as an additive floor during inversion, $\Sigma_\theta = (H + 1.0 \cdot I)^{-1}$. For heavily constrained parameters ($H \approx 10^5$), the prior is negligible, preserving the sharp local curvature. For the flat parameters ($H \approx 10^{-37}$), the prior prevents the denominator from collapsing, securely clamping the maximum unscaled variance to $1.0$.
-%     \item \textbf{The Neighborhood Restrictor ($T_s = 0.01$):} While the variance explosion is mathematically clamped, an unscaled variance of $1.0$ applied to a neural network weight is physically catastrophic. It causes jumps large enough to exit the immediate neighborhood of the MAP estimate, rendering the local quadratic approximation invalid. Applying Temperature Scaling ($T_s^2 = 10^{-4}$) to the clamped covariance matrix reduces this maximum variance to a safe $10^{-4}$. 
-% \end{enumerate}
 
 \begin{figure}[!htbp]
     \centering
@@ -367,19 +304,10 @@ We can indeed see on \autoref{fig:llla_temp_abla_tp} that lower priors can be be
 On the other hand, we can see on \autoref{fig:llla_temp_abla} that it is slightly worse on the Mean \acs{DE} metric.
 
 We see next that we should not expect \acs{LLLA} or \acs{ICLA} to come close to \acs{DE} full epistemic uncertainty estimation anyway.
-% The success of this two-step mechanism is evident in the green line (\acs{LA}: Prior 1.0, Temp 0.01) on \autoref{fig:llla_temp_abla_tp}. By clamping the null-space explosion and simultaneously forcing the sampling algorithm to take safely restricted steps, this configuration achieves superior performance at removing hallucinations compared to a massive prior alone, all while keeping the local curvature geometry fully intact.
 
 
 
 \section{Deep Ensemble vs Laplace Approximation}
-
-% We have seen that these methods capture fundamentally different phenomena. One captures full epistemic uncertainty across multiple learned modes, while the stabilized Laplace approach is highly sensitive to out of distribution hallucinations. Why is that, which one is better, and in which case? ...
-
-% \subsection{The Geometric Interpretation}
-
-% From what we observed, Deep Ensemble start to filter out pure hallucinations (off-mode samples) quite late (starting at higher rejection rate than \acs{LA}). When looking at the first samples filtered by \acs{DE} (at a low rejection rate), we see a different kind of uncertainty, a model disagreement on which mode to assign the sample to. \acs{DE} therefore seem to actually capture the full epistemic uncertainty while \acs{LA} only focuses on off-mode samples (hallucinations).
-
-% It's easy to see why \acs{LA} would be blind to this model's disagreement kind of uncertainty. \acs{DE} are constructed by training multiple models from different random seeds. This leads to each model actually living in a different low loss basin while \acs{LA} is forced to only take small steps around the same basin.
 
 \subsection{The Geometric Interpretation}
 As observed in the Toy experiment, \acs{DE} seems to filter out samples where the ensemble members disagree on which mode the sample belongs to before starting to remove ``hallucinations''. This is expected because the distance between samples that are assigned to different modes is usually much bigger than the distance between samples assigned to the same modes but located too far from that mode. \acs{LA} instead directly targets ``hallucinations''.
@@ -439,5 +367,3 @@ Either the hessian spectrum values of the \acs{ADM} are already scaled properly 
 \section{Conclusion}
 
 In conclusion, we've shown that \acs{LLLA} can actually perform well in the context of a Toy diffusion model contrary to what was previously thought in \cite{gupta_quantifying_2026} for instance, provided we play around with high priors or temperature scaling.
-
-% Although it's hard to conclude on the applicability of

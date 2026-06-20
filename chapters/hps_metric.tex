@@ -1,22 +1,9 @@
 \chapter{Human Preference Score Metric}
 \label{ch:hpsv3}
 
-% \item \acs{VLM} (Vision Language Model) metric and filtering method. Implement the HPSv3 VLM metric (a model trained to emulate a human preference score) to evaluate the model's performance on individual images which helps on a couple of fronts:
-%     \begin{itemize}
-%         \item the FID metric is a good simple metric to start with in the field of natural images generation but it has been criticized in the literature \parencite{jayasumana_rethinking_2024} to contradict humans. Precision and Recall are built on the same feature extractor as the FID and are therefore also affected by this criticism leading to the need for an alternative for the \acs{FPR} set of metrics.
-%         \item the \acs{FPR} metrics can only be computed on batches of generated samples. Testing the metric on small batches is brittle and creating big batches of images is very expensive. 
-%         % \item Avoiding the task of manually reviewing the images and their score to make sure the uncertainty scoring method is properly.
-%     \end{itemize}
 
 \cite{jazbec_generative_2025} has relied on the \acs{FPR} (FID, Precision and Recall) metrics to evaluate the performance of generative uncertainty against other baselines such as Realism, Rarity and BayesDiff \parencite{kou_bayesdiff_2024}.
 While the \acs{FPR} metrics are a good starting point in the field of natural images, we provide an extensive list of its problems in \autoref{sub:problems_inception}. Those problems motivated the need for a new independent metric that align better with human preferences and can be computed on single images at a time.
-
-
-% \cite{jayasumana_rethinking_2024} proposed using an alternative feature extractor to improve the FID metric. But to satisfy our additional need for a \textit{per-image} metric, we went with a model trained to predict Human Preference Scores per image.
-
-% Those metrics are standard in the field of diffusion models but may not be the most accurate at judging if we are effectively removing hallucinations.
-
-% One issue of \parencite{jazbec_generative_2025} framework was that FID, precision, recall, realism and rarity all work in the same \textit{inception-net} feature space which offers a biased evaluation of the realism and rarity baselines against generative uncertainty.
 
 \section{Human Preference Score v3 (HPSv3)}
 
@@ -26,8 +13,6 @@ It should be noted however that part of the human score is also attributed to ho
 For this experiment, we went with the HPSv3 score \parencite{ma_hpsv3_2025}, it supports both high quality and low quality pictures which is essential for our low quality 128x128 ADM model.
 
 The HPSv3 score however is built to judge how much a text description matches an image. The \acs{ADM} model on the other hand is built to generate class conditioned images such as dog, flower,... To make the HPSv3 score work with this setup we just use the following text description for each image: ``\texttt{a high quality photo of a [class\_name]}''
-
-% We can immediately compute the correlation score of 
 
 \section{Measuring HPSv3 Performance on FID, Precision, Recall}
 

@@ -1,0 +1,1 @@
+Ignore this folder, examples for usage of this the template

@@ -42,8 +42,6 @@ Although we see a significant rise in precision, it occurs at an high cost of re
 \section{Conclusion}
 Fortunately filtering metrics will remain useful because even if the model generates far less artifacts, we still need to detect them. But from the perspective of trying to improve the quality of a generated dataset it seems like adding the classifier is the way to go, with the added advantage of not having to generate more images to filter out the worse ones.
 
-% \autoref{fig:classifier} shows that no improvement can be made to the FID, indeed, at 12000 images it has already been reduced to $FID \simeq 7$ which is much lower than what the sweet spot generative uncertainty filtering could offer on the classifier-free guided model ($FID \simeq 10$). 
-
 % It seems like the uncertainty tail as we observed in the toy experiment has disappeared with classifier-guided generations. To verify this, we run the same uncertainty plot on this experiment and get \autoref{fig:uncertainty_dist_adm}. We don't observe a clean and isolated \textit{tail of uncertainty}. But we still observe a skew in the distribution, the samples have been pushed left (less uncertain).
 
 % This lack of clean tail of uncertainty might be caused by overly aggressive approximations made to render the generative uncertainty computation feasible on large models in \parencite{jazbec_generative_2025}, we will later explore the impact of those approximations on the toy experiment first and try to improve it's accuracy with reasonable computational cost.

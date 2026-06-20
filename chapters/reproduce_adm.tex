@@ -3,10 +3,6 @@
 
 The following experiment was originally conducted in \cite{jazbec_generative_2025} to prove the applicability and usefulness of generative uncertainty in a large scale, state of the art diffusion model like \acs{ADM} against other baselines on the \acs{FPR} (FID, Precision and Recall) metrics. The idea here will be to prove that we can reproduce their experiment and get the same results. That will allow us to have the proper foundation to start extending their framework and conducting new experiments.
 
-% Architecturally, ADM is built upon a modified U-Net backbone that incorporates multiple attention heads (with 64 channels per head) operating across several spatial resolutions ($32\times32$, $16\times16$, and $8\times8$). The network utilizes BigGAN-style residual blocks for upsampling and downsampling operations. Additionally, it employs Adaptive Group Normalization (AdaGN) layers, which integrate necessary conditioning by injecting timestep and class embeddings directly into the intermediate activations of the residual blocks.
-
-% In the context of this thesis, ADM is used because it achieves exceptional visual fidelity and superior distribution coverage compared to traditional models like GANs, making it the standard for high-quality natural image generation[cite: 1368, 1371, 1588]. During our experiments, ADM is paired with deterministic DDIM sampling to efficiently evaluate complex datasets, such as high-resolution human hands[cite: 120, 121, 519]. This configuration provides an optimal, large-scale environment to observe and measure real-world mode interpolation, manifesting as out-of-distribution generative hallucinations (e.g., hands with additional or missing fingers)[cite: 521, 593].
-
 \section{Setup}
 
 \paragraph{Pipeline}

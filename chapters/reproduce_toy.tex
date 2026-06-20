@@ -1,9 +1,3 @@
-% \chapter{Introductory Experiments and Results Reproduction}
-
-% \section{Introduction}
-
-% In this chapter, we try to replicate some of the results from \parencite{jazbec_generative_2025} to prove that we got a working setup to build upon and we extend slightly extend their setup to get deeper insight.
-
 \chapter{Reproducing the Toy Experiment}
 \label{ch:reproduce_toy}
 
@@ -19,9 +13,7 @@ This architecture is trained on a synthetic two dimensional dataset consisting o
 \end{figure}
 
 During the reverse diffusion process, the DDPM occasionally interpolates between the well-defined modes, generating synthetic data points that have near-zero probability mass in the original training distribution. The primary objective of this toy setup is to investigate the effectiveness of generative uncertainty at filtering \textit{hallucinations} defined as those out of distribution mode interpolations.
-% which are due to the neural network struggling to accurately model the sharp jumps in the true score function that separate these disjoint Gaussian modes. Instead of a perfect step function, the network learns a smoothed, tempered approximation, which inadvertently creates a region of uncertainty between neighboring modes. 
 
-% Consequently, during the reverse diffusion process, the DDPM occasionally interpolates between these well-defined modes, generating synthetic data points that have near-zero probability mass in the original training distribution.
 \section{Code Setup}
 
 We are trying to replicate the toy experiment done in \parencite{jazbec_generative_2025} which itself is based on the code provided by \parencite{aithal_understanding_2024}.
@@ -42,9 +34,6 @@ It is important to note that a Deep ensemble behaves very different from a Lapla
 We created a dataset of pure noise and gave this pure noise dataset to all 1+M models to generate $2^{16}=65536$ samples per model. We fixed the \texttt{pytorch} seed such that the inference randomness of the DDPM is the same across the 6 models(to isolate the epistemic uncertainty properly).
 
 
-
-
-% \sub
 \paragraph{Uncertainty Calculation}
 The uncertainty was calculated as the entropy of a moment matched gaussian distribution (with diagonal approximation of the covariance) as described in \parencite{jazbec_generative_2025} method (\autoref{sec:bayesian_model}). 
 

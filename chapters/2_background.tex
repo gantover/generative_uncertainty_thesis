@@ -9,7 +9,7 @@ Additionally, practical and theoretical issues will be highlighted and linked to
 
 In this section, we define the FID \parencite{heusel_gans_2018}, Precision, Recall, Realism \parencite{kynkaanniemi_improved_2019} and Rarity \parencite{han_rarity_2022} metrics. All of these operate in a shared feature space: each image (real or generated) is embedded by a pretrained \texttt{Inception-v3} network, yielding a feature vector $\phi$. We write $\boldsymbol{\Phi}_r = \{\phi_r^i\}$ and $\boldsymbol{\Phi}_g = \{\phi_g^i\}$ for the real and generated embedded feature sets respectively. For later definitions that can take either the real or generated feature set, we use $\boldsymbol{\Phi} \in \{\boldsymbol{\Phi}_r, \boldsymbol{\Phi}_g\}$.
 
-We will first go trough the batch scale\footnote{Batch scale refers to metrics that needs a whole (large) dataset of generated samples to be computed on.} metrics \acs{FPR} (FID, Precision and Recall) aimed to evaluate the ``quality'' of the generated dataset compared to the real dataset.
+We will first go through the batch scale\footnote{Batch scale refers to metrics that need a whole (large) dataset of generated samples to be computed on.} metrics \acs{FPR} (FID, Precision and Recall) aimed to evaluate the ``quality'' of the generated dataset compared to the real dataset.
 We first define the simplest metric: the \acs{FID} from \cite{heusel_gans_2018} which relies on fitting multivariate gaussian to generated and real datasets. Then we introduce two slightly more complex metrics: the ``improved'' Precision and Recall as presented in \cite{kynkaanniemi_improved_2019} which rely on a k-NN manifold approximation.
 
 We finally define the individual\footnote{Opposite of batch scale, those metrics evaluate a single sample from the generated dataset which opens the door to filtering by assigning a score per sample.} samples metrics: Realism \parencite{kynkaanniemi_improved_2019} and Rarity \parencite{han_rarity_2022} that will be used as baseline to filter the samples and compare with Generative Uncertainty on the \acs{FPR} metrics. Filtering metrics are used to create subsets $\boldsymbol\Phi_f \subseteq \boldsymbol\Phi_g$ that only keep the $N$ best samples with respect to that filtering metric.
@@ -61,24 +61,24 @@ Despite its widespread adoption, FID suffers from notable structural weaknesses 
 Before going on to define the Precision, Recall, Realism and Rarity metrics, we need to properly define what the k-NN Manifold Approximation is.
 
 \begin{tcolorbox}[colback=gray!10!white,colframe=gray!50!black,sharp corners]
-The intuitive idea here is that each point in the embedding space $\phi \in \boldsymbol{\Phi}$ is assigned a ball for which the radius is defined by the distance between $\phi$ and it's k-th closest neighbor. Taking the union of all those balls gives an approximation of the Manifold defined by the real or generated dataset (\autoref{fig:bg_knn_manifold} for an intuitive visualization).
+The intuitive idea here is that each point in the embedding space $\phi \in \boldsymbol{\Phi}$ is assigned a ball for which the radius is defined by the distance between $\phi$ and its k-th closest neighbor. Taking the union of all those balls gives an approximation of the manifold defined by the real or generated dataset (\autoref{fig:bg_knn_manifold} for an intuitive visualization).
 \end{tcolorbox}
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/background/knn_manifold.png}
     \caption{Taken from \cite{kynkaanniemi_improved_2019} (a) An example manifold in a feature space. 
-    (b) Estimate of the manifold obtained by sampling a set of points and surrounding each with a hypersphere that reaches its $k$-th nearest neighbor. defines $\mathcal{M}_k$.}
+    (b) Estimate of the manifold obtained by sampling a set of points and surrounding each with a hypersphere that reaches its $k$-th nearest neighbor, defining $\mathcal{M}_k$.}
     \label{fig:bg_knn_manifold}
 \end{figure} 
 
 More rigorously, we define the radius of the hypersphere surrounding each feature vector $\phi^i \in \boldsymbol{\Phi}$ as  $||\phi^i - \mathrm{NN}_k(\phi^i, \boldsymbol{\Phi})||_2$ where $\mathrm{NN}_k(\phi^i, \boldsymbol{\Phi})$ is the k-th nearest vector to $\phi^i$ in $\boldsymbol{\Phi}$. The ball is then defined as:
 \begin{align}
   B_{k}(\phi^{i},\boldsymbol{\Phi})
-  &= \bigl\{\phi \mid \|\phi - \phi^{i}\|_{2} \le ||\phi^i - \mathrm{NN}_{k}(\phi_{i},\boldsymbol{\Phi})||_2\bigr\}. \label{eq:knn_ball_cond}
+  &= \bigl\{\phi \mid \|\phi - \phi^{i}\|_{2} \le ||\phi^i - \mathrm{NN}_{k}(\phi^{i},\boldsymbol{\Phi})||_2\bigr\}. \label{eq:knn_ball_cond}
 \end{align}
 
-And finally, the approximation of the underlying manifold of $\boldsymbol{\Phi}$ constructed as:
+And finally, the approximation of the underlying manifold of $\boldsymbol{\Phi}$ is constructed as:
 \begin{align}
   \label{eq:manifold}
   \mathcal{M}_{k}(\boldsymbol{\Phi}) &= \bigcup_{\phi^{i} \in \boldsymbol{\Phi}} B_{k}(\phi^{i},\boldsymbol{\Phi}),
@@ -86,7 +86,7 @@ And finally, the approximation of the underlying manifold of $\boldsymbol{\Phi}$
 
 % (\autoref{fig:bg_knn_manifold} \cite{kynkaanniemi_improved_2019}): each feature vector $\phi_i \in \Phi$ is
 
-Lastly, we define an helper function for then membership of a given sample $\phi$ to an approximated manifold $\mathcal{M}_k(\boldsymbol{\Phi})$
+Lastly, we define a helper function for the membership of a given sample $\phi$ to an approximated manifold $\mathcal{M}_k(\boldsymbol{\Phi})$
 \begin{align}
 f(\phi, \boldsymbol{\Phi}) &= 
     \begin{cases} 
@@ -169,7 +169,7 @@ Precision and recall are not independent: retaining only the highest-quality gen
 % $\mathrm{NN}_{k}(\phi, \Phi)$ to denote the $\ell_2$-distance from $\phi$
 % to its $k$-th nearest neighbour in $\Phi$.
 
-In the same paper as Precision and Recall, \cite{kynkaanniemi_improved_2019} introduce Realism, a metric that can be used to score individual samples by providing an estimate of how deeply a generated sample penetrates the the real manifold by comparing the radius of a real neighborhood to the distance from
+In the same paper as Precision and Recall, \cite{kynkaanniemi_improved_2019} introduce Realism, a metric that can be used to score individual samples by providing an estimate of how deeply a generated sample penetrates the real manifold by comparing the radius of a real neighborhood to the distance from
 the generated sample to its center. Taking the maximum gives the deepest penetration. 
 
 \begin{align}
@@ -180,8 +180,8 @@ the generated sample to its center. Taking the maximum gives the deepest penetra
 
 The score gets bigger as the generated sample $\phi_g$ gets closer to $\mathcal{M}_k(\boldsymbol\Phi_r)$ until $R \ge 1$ and we have an equivalence with $f(\phi_g, \boldsymbol\Phi_r)$ \eqref{eq:f_helper_func_mk} where $f(\phi_g, \boldsymbol{\Phi}_r) = 1 \iff R(\phi_g, \boldsymbol{\Phi}_r) \ge 1$. The ratio $R$ can be seen as a continuous extension of the helper function $f$ \eqref{eq:f_helper_func_mk}.
 
-Lastly, one flaw of the k-NN approximation is to assign large hyperspheres to points in sparse regions (low samples density). 
-If a sample happens to fall in such region, it can lead to an highly inaccurate score $R$. To fix this, instead of taking the $\max$ across all $\phi_r \in \boldsymbol{\Phi}_r$, we create a subset $\boldsymbol{\Phi}_r^*$ by taking $\boldsymbol{\Phi}_r$ and removing all $\phi_r$ that have an hypersphere of radius bigger than the median radius.
+Lastly, one flaw of the k-NN approximation is to assign large hyperspheres to points in sparse regions (low sample density). 
+If a sample happens to fall in such a region, it can lead to a highly inaccurate score $R$. To fix this, instead of taking the $\max$ across all $\phi_r \in \boldsymbol{\Phi}_r$, we create a subset $\boldsymbol{\Phi}_r^*$ by taking $\boldsymbol{\Phi}_r$ and removing all $\phi_r$ that have a hypersphere of radius bigger than the median radius.
 
 Regarding Precision and Recall, because it is unlikely that a sample falls in a low density region, even with larger hyperspheres, the proportion of samples affected by this is quite low. Therefore, Precision and Recall being evaluated on large populations of generated samples, do not need such precautions (according to \cite{kynkaanniemi_improved_2019}).
 
@@ -204,7 +204,7 @@ Regarding Precision and Recall, because it is unlikely that a sample falls in a 
 \label{subsec:rarity}
 
 While realism was good at evaluating how close a generated image was to the real data manifold, it did so by rewarding images that stayed in safe, familiar territory.
-The Rarity score \cite{han_rarity_2022} was introduced to explicitly evaluate the ``uncommonness'' of an individual generated image while still detecting and isolating \acs{OOD} (Out Of Distribution) samples. Therefore rewarding models that can generate those edge cases without producing \acs{OOD}.
+The Rarity score \cite{han_rarity_2022} was introduced to explicitly evaluate the ``uncommonness'' of an individual generated image while still detecting and isolating \acs{OOD} (Out Of Distribution) samples, thereby rewarding models that can generate those edge cases without producing \acs{OOD}.
 
 % rewarding models that can successfully generate these edge cases without producing \acs{OOD} (out-of-distribution) samples.
 % The rarity score~\cite{han_rarity_2022} quantifies the uncommonness of a generated sample based on the density of the real data distribution. It is defined as the minimum radius among the real $k$-NN spheres that contain the given fake sample:
@@ -216,7 +216,7 @@ The Rarity score \cite{han_rarity_2022} was introduced to explicitly evaluate th
 %   \min_{\substack{\phi^{r}_{i} \in \Phi_{r} \\ \phi^{g}_{j} \in B_{k}(\phi^{r}_{i},\Phi_{r})}}
 %   \mathrm{NN}_{k}(\phi^{r}_{i},\Phi_{r}).
 % \end{align}
-For a generated sample $\phi_g^j$, we take every ball $B_k$ penetrated by $\phi_g^j$ and take the smallest ball radius as Rarity score. The bigger the radius, the less dense the region of the Manifold which is what rarity tries to measure, additionally, if $\phi_g^j$ does not penetrate any ball, we consider it \acs{OOD}. Here is mathematical formulation:
+For a generated sample $\phi_g^j$, we take every ball $B_k$ penetrated by $\phi_g^j$ and take the smallest ball radius as Rarity score. The bigger the radius, the less dense the region of the manifold which is what rarity tries to measure, additionally, if $\phi_g^j$ does not penetrate any ball, we consider it \acs{OOD}. Here is mathematical formulation:
 
 \begin{equation}
   \mathrm{Rarity}(\phi_{g}^j, \boldsymbol{\Phi}_r)=
@@ -233,7 +233,7 @@ For a generated sample $\phi_g^j$, we take every ball $B_k$ penetrated by $\phi_
 % By taking the minimum of the radius of the hyper-sphere, the metric avoids overestimating the sparsity of a generated sample that happens to fall into multiple overlapping spheres. A high rarity score indicates that the sample resides in a low-density region of the real manifold, exhibiting unique or extraordinary characteristics. Conversely, a low rarity score indicates a highly typical, common image \cite{han_rarity_2022}. Because the fidelity of samples completely outside the real manifold cannot be guaranteed, their rarity scores are undefined, and they are discarded. Depending on the desired output, one can retain the $n$ generated images with the \emph{highest} rarity scores to sample high-diversity generation, or the \emph{lowest} to ensure typicality.
  
 Realism and rarity are thus complementary: realism rewards proximity to the real manifold, while rarity rewards distance from its high-density core. 
-In \cite{jazbec_generative_2025} however, they aim to remove artifacts out of the dataset. They hypothesize that those artifacts are located in the lower density regions meaning the use the rarity score for filtering by keeping the images with \textbf{lowest} rarity.
+In \cite{jazbec_generative_2025} however, they aim to remove artifacts out of the dataset. They hypothesize that those artifacts are located in the lower density regions meaning they use the rarity score for filtering by keeping the images with \textbf{lowest} rarity.
 
 \subsection{Problems with this Framework}
 \label{sub:problems_inception}
@@ -243,8 +243,8 @@ Here we list and properly explain all identified problems ranging from the metri
 \paragraph{Inception-V3 Encoder}
 First and foremost, all of these metrics rely on the same embedding space provided by the \texttt{Inception-v3} encoder and this leads to the following issues:
 \begin{itemize}
-    \item \cite{jayasumana_rethinking_2024} for instance criticizes the FID metric for contradicting humans and partly blames the \texttt{Inception-v3} encoder for it which would therefore affect all other inception based metrics.
-    \item Using the same encoder for both the Realism and Rarity filtering metric and the \acs{FPR} evaluation metrics leads to a bias that's likely to be disadvantageous for Generative Uncertainty for instance which does not use the \texttt{Inception-v3} encoder.
+    \item The FID metric has been criticized for contradicting human judgement, partly attributing the problem to the \texttt{Inception-v3} encoder \parencite{jayasumana_rethinking_2024}; this issue would therefore affect all other Inception-based metrics.
+    \item Using the same encoder for both the Realism and Rarity filtering metric and the \acs{FPR} evaluation metrics leads to a bias that is likely disadvantageous for methods that do not use the \texttt{Inception-v3} encoder, such as Generative Uncertainty.
 \end{itemize}
 
 % \begin{enumerate}
@@ -282,7 +282,7 @@ The effect of sample size $|\boldsymbol\Phi|$ has been studied for both FID \par
 
 \begin{enumerate}
     % \item \boldsymbol{FID}: \cite{jayasumana_rethinking_2024} highlights the 
-    \item The FID computation requires the computation of two covariance matrix $\Sigma_r, \Sigma_g$ of size $2048 \times 2048$ which lead to poor sample efficiency. \parencite{jayasumana_rethinking_2024}. \label{enum:fid_critique_sample_efficiency}
+    \item The FID computation requires the computation of two covariance matrices $\Sigma_r, \Sigma_g$ of size $2048 \times 2048$, which leads to poor sample efficiency \parencite{jayasumana_rethinking_2024}. \label{enum:fid_critique_sample_efficiency}
     \item Because Precision and Recall rely on the k-NN manifold approximation, having a smaller dataset size $|\boldsymbol\Phi|$ implies a lower density of points across the semantic space making the distance to the $k$-th neighbor bigger and therefore the hypersphere associated to each point bigger, it becomes easier for points of each either $\boldsymbol\Phi_{r,g}$ to fall into the manifold associated to the other distribution $\mathcal{M}_k(\boldsymbol\Phi_{g,r})$, artificially increasing the Precision and Recall scores.
 \end{enumerate}
 
@@ -293,16 +293,16 @@ The effect of sample size $|\boldsymbol\Phi|$ has been studied for both FID \par
     \label{fig:fpr_sample_size}
 \end{figure}
 
-\autoref{fig:fpr_sample_size} illustrate this phenomenon in \cite{kynkaanniemi_improved_2019} experimental setup. When looking into the range $[6000,\dots,12000]$ (to match \cite{jazbec_generative_2025}) FID is by far the most affected. Precision is also affected in a visible way, while Recall appears to be significantly more stable.
+\autoref{fig:fpr_sample_size} illustrates this phenomenon in \cite{kynkaanniemi_improved_2019}'s experimental setup. When looking into the range $[6000,\dots,12000]$ (to match \cite{jazbec_generative_2025}) FID is by far the most affected. Precision is also affected in a visible way, while Recall appears to be significantly more stable.
 
 One plausible explanation for this stems from the spatial differences between $\mathcal{M}_k(\boldsymbol\Phi_r)$ and $\mathcal{M}_k(\boldsymbol\Phi_g)$. 
 
-Recall evaluates whether real images fall withing the generated manifold.
-Generative models generally cover a smaller fraction of the true data distribution\footnote{This is also a motivations for the creation of metrics such as Precision and Recall}. Because generated samples are packed into a smaller subset of the feature space, lowering the sample size forces the $k$-NN boundaries of these dense clusters to grow. Since this generated manifold sits within the broader real distribution, expanding its boundaries rapidly engulfs peripheral real points, causing Recall to spike artificially. 
+Recall evaluates whether real images fall within the generated manifold.
+Generative models generally cover a smaller fraction of the true data distribution\footnote{This is also a motivation for the creation of metrics such as Precision and Recall}. Because generated samples are packed into a smaller subset of the feature space, lowering the sample size forces the $k$-NN boundaries of these dense clusters to grow. Since this generated manifold sits within the broader real distribution, expanding its boundaries rapidly engulfs peripheral real points, causing Recall to spike artificially. 
 
 In contrast, Precision evaluates whether generated images fall within the real manifold. Because models tend to generate samples in safe, well-represented regions, most generated points already reside deep inside the real distribution. Therefore, when the broad real manifold expands outward into empty space due to sparsity, it captures very few new generated points, resulting in a much flatter growth curve for Precision.
 
-In \cite{jazbec_generative_2025} however, we fix the size of the real dataset $|\boldsymbol{\Phi}_r| = 50{,}000$ and play with the size of the generated dataset $N = |\boldsymbol\Phi_f| \in [6000,\dots,12000]$. This asymmetry makes precision even less sensitive to $N$ because $\mathcal{M}_k(\boldsymbol\Phi_r)$ is fixed, only the number of generated points changes and most of them reside in the real distribution. Recall however grows even more from it because it measures how well the huge dataset $50{,}000$ points fit into the $\mathcal{M}_k(\boldsymbol\Phi_r)$ for which the hypersphere keep growing around the clusters.
+In \cite{jazbec_generative_2025} however, we fix the size of the real dataset $|\boldsymbol{\Phi}_r| = 50{,}000$ and play with the size of the generated dataset $N = |\boldsymbol\Phi_f| \in [6000,\dots,12000]$. This asymmetry makes precision even less sensitive to $N$ because $\mathcal{M}_k(\boldsymbol\Phi_r)$ is fixed, only the number of generated points changes and most of them reside in the real distribution. Recall however grows even more from it because it measures how well the huge dataset $50{,}000$ points fit into the $\mathcal{M}_k(\boldsymbol\Phi_r)$ for which the hyperspheres keep growing around the clusters.
 
 \begin{tcolorbox}[colback=red!10!white,colframe=red!50!black,sharp corners]
 This will be confirmed in the reproduced \cite{jazbec_generative_2025} experiment (\autoref{ch:reproduce_adm}).
@@ -322,12 +322,12 @@ Specifically when looking at the \texttt{random} filtering baseline which random
 
 
 \paragraph{FID Specific Critique}
-\cite{jayasumana_rethinking_2024} has critiqued FID on other aspects among which: ``Approximating both the real and generated image distribution by a multivariate gaussian is provably incorrect''.
+The Gaussian assumption in FID has also been critiqued \parencite{jayasumana_rethinking_2024}: ``approximating both the real and generated image distribution by a multivariate Gaussian is provably incorrect''.
 
 \paragraph{Batch Scale Metrics}
 
 The fact that \acs{FPR} metrics need large \textit{batches} of generated data for them to be meaningful makes their evaluation extremely expensive. In \cite{jazbec_generative_2025} for instance we use 12032 images generated by $M+1=6$ models which takes around 20 hours of compute on a \texttt{Tesla A100}. 
-This motivates the needs for an evaluation metric that can be computed \textit{per-image}. One could use Realism and Rarity for that but are already using those metrics as filtering baselines and using Realism and Rarity would not fix most of the issues highlighted above.
+This motivates the need for an evaluation metric that can be computed \textit{per-image}. One could use Realism and Rarity for that but we are already using those metrics as filtering baselines and using Realism and Rarity would not fix most of the issues highlighted above.
  
 % ============================================================
  
@@ -341,7 +341,14 @@ This motivates the needs for an evaluation metric that can be computed \textit{p
  
  \paragraph{Conclusion}
 
- In short, the \texttt{Inception-v3} encoder does not suit our needs \parencite{jayasumana_rethinking_2024}, FID contradicts humans \parencite{jayasumana_rethinking_2024}, Using the same encoder for both \acs{FPR} and Realism/Rarity baseline is disadvantageous for the Generative Uncertainty method, Using small and asymmetric dataset sizes leads to an artificial inflation of the \acs{FPR} metrics when filtering out samples that leads to false judgments if not careful, \acs{FPR} metrics needs huge generated datasets which are extremely expensive to compute.
+ In short:
+\begin{itemize}
+    \item The \texttt{Inception-v3} encoder does not suit our needs \parencite{jayasumana_rethinking_2024}.
+    \item FID contradicts human judgement \parencite{jayasumana_rethinking_2024}.
+    \item Using the same encoder for both \acs{FPR} and the Realism/Rarity baselines is disadvantageous for methods that do not use the \texttt{Inception-v3} encoder, such as Generative Uncertainty.
+    \item Using small and asymmetric dataset sizes causes artificial inflation of the \acs{FPR} metrics when filtering, leading to false conclusions if not accounted for.
+    \item \acs{FPR} metrics require huge generated datasets, making them extremely expensive to compute.
+\end{itemize}
 
 In light of those issues, we've decided to keep \cite{jazbec_generative_2025} experiments setup as it is and instead add a brand new metric that will serve as an ``oracle'' of judging if an image is realistic or not. For this, we will use a pretrained model that outputs a human preference score (\autoref{ch:hpsv3}).
 
@@ -353,7 +360,7 @@ Diffusion models are deep generative models that learn to synthesize high-qualit
 \subsection{Formal Setup (WIP)}
 Suppose we are given a training dataset $\mathcal{D} = \{x_n\}_{n=1}^N$ drawn from a true underlying data distribution $p_{data}(x)$.
 % \footnote{Note that we use $q$ to denote both the fixed true data distribution and the fixed forward noising process. We later use $q$ for the \acs{LA}. To differentiate them, we look at the arguments they take}.
-Depending on the domain, the data $x \in \mathcal{X}$ can take various mathematical forms. for example, in the case of natural images, $x$ is a high-dimensional tensor $x \in \mathbb{R}^{H \times W \times C}$. In this thesis we simply write $x \in \mathbb{R}^D$.
+Depending on the domain, the data $x \in \mathcal{X}$ can take various mathematical forms. For example, in the case of natural images, $x$ is a high-dimensional tensor $x \in \mathbb{R}^{H \times W \times C}$. In this thesis we simply write $x \in \mathbb{R}^D$.
 
 The ultimate goal of generative modeling is to define a generator function, $g_{\theta} : \mathcal{Z} \rightarrow \mathcal{X}$ parameterized by model weights $\theta \in \mathbb{R}^{P}$, which maps an initial noise variable $z \in \mathcal{Z}$ drawn from a prior distribution $z \sim p_{init}(z)$ (typically a standard Gaussian $\mathcal{N}(0, I)$) to a new data sample $\hat{x}$. However, unlike other generative models (VAEs, GANs) that attempt to learn this complex mapping in a single leap, diffusion models decompose the mapping into a progressive, step-by-step process \parencite{ho_denoising_2020}. 
 
@@ -435,7 +442,7 @@ The standard training formulation described above optimizes the objective $\math
 
 In standard deep learning paradigms, neural networks are trained using optimization techniques such as Stochastic Gradient Descent (SGD) to find a single optimal set of weights $\hat{\theta}$. Probabilistically, this is equivalent to Maximum Likelihood Estimation (\acs{MLE}) or, if explicit regularization like weight decay is used, Maximum a Posteriori (\acs{MAP}) estimation. While computationally efficient, point estimation fails to capture the uncertainty inherent in learning from limited data (epistemic uncertainty). 
 
-Bayesian deep learning addresses this by treating the neural network weights $\theta$ not as fixed deterministic values, but as random variables. Before observing any data, our beliefs about the weights are encoded in a \textit{prior distribution} $p(\theta)$ (commonly an isotropic Gaussian). Once the training dataset $\mathcal{D}$ is observed, we update these beliefs using Bayes theorem to obtain the \textit{posterior distribution} over the weights:
+Bayesian deep learning addresses this by treating the neural network weights $\theta$ not as fixed deterministic values, but as random variables. Before observing any data, our beliefs about the weights are encoded in a \textit{prior distribution} $p(\theta)$ (commonly an isotropic Gaussian). Once the training dataset $\mathcal{D}$ is observed, we update these beliefs using Bayes' theorem to obtain the \textit{posterior distribution} over the weights:
 \begin{equation}
     p(\theta | \mathcal{D}) = \frac{p(\mathcal{D} | \theta) p(\theta)}{p(\mathcal{D})}.
 \end{equation}
@@ -445,7 +452,7 @@ The primary advantage of the Bayesian framework is that it enables robust uncert
 \begin{equation}
     p(y^* | x^*, \mathcal{D}) = \int p(y^* | x^*, \theta) p(\theta | \mathcal{D}) d\theta.
 \end{equation}
-If the model is queried on out-of-distribution data where the posterior $p(\theta | \mathcal{D})$ is broad (high epistemic uncertainty), the resulting predictions distribution will appropriately reflect this lack of confidence.
+If the model is queried on out-of-distribution data where the posterior $p(\theta | \mathcal{D})$ is broad (high epistemic uncertainty), the resulting predictive distribution will appropriately reflect this lack of confidence.
 
 Despite its theoretical appeal, exact Bayesian inference in deep neural networks is computationally intractable. 
 % The integration required to compute the marginal likelihood $p(\mathcal{D})$ involves high-dimensional, non-convex spaces corresponding to millions or billions of network parameters. 
@@ -459,7 +466,7 @@ While many techniques such as Markov Chain Monte Carlo and Variational Inference
 \section{Laplace Approximation}
 \label{sec:bg_laplace}
 
-As established in the previous section, exact Bayesian inference requires integrating over the entire parameter space, a task that is strictly intractable for the high-dimensional weight spaces of modern deep neural networks. The Laplace approximation offers a mathematically elegant and computationally feasible post-hoc alternative. Rather than tracking the full posterior during training, the Laplace approximation constructs a local, multivariate Gaussian approximation of the true posterior distribution centered around the pre-trained point estimate Maximum a Posteriori (\acs{MAP}) denoted here\footnote{Later, we will also denote $\hat{\theta}$ as the pre-trained model's weights, which is a \acs{MLE} (Maximum Likelihood Estimation) instead} as $\hat{\theta}$
+As established in the previous section, exact Bayesian inference requires integrating over the entire parameter space, a task that is strictly intractable for the high-dimensional weight spaces of modern deep neural networks. The Laplace approximation offers a mathematically elegant and computationally feasible post-hoc alternative. Rather than tracking the full posterior during training, the Laplace approximation constructs a local, multivariate Gaussian approximation of the true posterior distribution centered around the pre-trained point estimate Maximum a Posteriori (\acs{MAP}) denoted here\footnote{Later, we will also denote $\hat{\theta}$ as the pre-trained model's weights, which is a \acs{MLE} (Maximum Likelihood Estimation) instead} as $\hat{\theta}$.
 
 
 \subsection{Mathematical Formulation}
@@ -486,19 +493,19 @@ In practice, $p(\mathcal{D})$ is often intractable. Fortunately we don't need it
     &= -\nabla^2_\theta \log p(\mathcal{D}|\theta)|_{\theta=\hat\theta} -\nabla^2_\theta \log p(\theta)|_{\theta=\hat\theta} \label{eq:hessian_joint}
 \end{align}
 
-Because of the independence ($\indep$) of $p(\mathcal{D})$ from $\theta$, it's gradient w.r.t. $\theta$ is $\boldsymbol{0}$. This implies that we actually only need to compute the hessian on the negative log of the joint distribution $p(\theta, \mathcal{D})$.
+Because of the independence ($\indep$) of $p(\mathcal{D})$ from $\theta$, its gradient w.r.t. $\theta$ is $\boldsymbol{0}$. This implies that we actually only need to compute the hessian on the negative log of the joint distribution $p(\theta, \mathcal{D})$.
 
 \subsection{Pre-trained models use the MLE}
 \label{sub:la_trained_on_mle}
 
-The \acs{MAP} estimate is obtained by optimizing the posterior $p(\theta|\mathcal{D}) \propto p(\mathcal{D}|\theta)\cdot p(\theta)$. For the \acs{LA} to be defined properly, it needs to be centered on the \acs{MAP} estimate $\hat{\theta}$. Unfortunately, most diffusion models are trained to optimize the likelihood $p(\theta | \mathcal{D})$ only  leading to $\hat\theta$ a Maximum Likelihood Estimation (\acs{MLE}) instead. This makes the above derivation mathematically false (the first order derivative is not zero).
+The \acs{MAP} estimate is obtained by optimizing the posterior $p(\theta|\mathcal{D}) \propto p(\mathcal{D}|\theta)\cdot p(\theta)$. For the \acs{LA} to be defined properly, it needs to be centered on the \acs{MAP} estimate $\hat{\theta}$. Unfortunately, most diffusion models are trained to optimize the likelihood $p(\mathcal{D} | \theta)$ only, leading to a Maximum Likelihood Estimate $\hat\theta$ (\acs{MLE}) instead. This makes the above derivation mathematically false (the first order derivative is not zero).
 % on those pre-trained \acs{MLE} models weights.
 
 Some models however are trained with L2 regularization (e.g \texttt{AdamW} weight decay) which is equivalent to optimizing the joint probability $p(\mathcal{D}|\theta)\cdot p(\theta)$ where $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$ is an isotropic gaussian prior. In this case, we just have to find the correct value for $\gamma$ to match the regularization parameter used in training.
 
 Unfortunately, the diffusion models we look at in this thesis don't use such regularization. We will have to assume \acs{MLE} $\simeq$ \acs{MAP} which is the same as assuming a uniform prior $p(\theta)$. This however would make the inverse Hessian computation unstable so we still use $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$ where we can see $\gamma$ as a post-hoc regularizer.
 
-Let's explore how this $\gamma$ affects the \acs{LA} approximation. For that let's go back to the Laplace approximation of the log-posterior, this time expanded around the trained weights $\hat\theta = \theta_{MLE}$:
+We now explore how this $\gamma$ affects the \acs{LA} approximation. For that let's go back to the Laplace approximation of the log-posterior, this time expanded around the trained weights $\hat\theta = \theta_{MLE}$:
 \begin{equation}
 \log p(\theta | \mathcal{D}) \approx \log p(\hat\theta|\mathcal{D}) + J^T(\theta - \hat\theta) - \frac{1}{2}(\theta - \hat\theta)^T H (\theta - \hat\theta)
 \end{equation}
@@ -523,7 +530,7 @@ Evaluating the full gradient at $\hat\theta$ yields the exact error term:
 J = \mathbf{0} - \gamma \hat\theta = - \gamma \hat\theta
 \end{equation}
 
-We are therefore trying find a $\gamma$ that's negligible compared to the Hessian while still big enough to stabilize the inversion of the Hessian properly.
+We are therefore trying to find a $\gamma$ that's negligible compared to the Hessian while still big enough to stabilize the inversion of the Hessian properly.
 
 Fortunately, the \acs{MLE} $\simeq$ \acs{MAP} approximation holds in practice because the massive scale of the data likelihood vastly dominates the prior term. Following
 the empirical validation in (\cite{jazbec_generative_2025}, Appendix D), we set
@@ -554,7 +561,7 @@ $\gamma = 1.0$ for the \acs{ADM}. For the Toy model however we will explore the 
 \chapter{Generative Uncertainty Theory and Computation}
 \label{ch:gu_theory}
 
-This chapter builds on \autoref{ch:background} to formalizes the computation of generative uncertainty, detailing the progression from the posterior approximation to the per-image uncertainty score.
+This chapter builds on \autoref{ch:background} to formalize the computation of generative uncertainty, detailing the progression from the posterior approximation to the per-image uncertainty score.
 
 \section{Pipeline Overview}
 \label{sec:pipeline_overview}
@@ -578,7 +585,7 @@ In this section, we describe the general pipeline (recipe) to compute generative
 \end{enumerate}
 
 \begin{tcolorbox}[colback=gray!10!white,colframe=gray!50!black,sharp corners]
-The intuition here is ``\textit{if a small perturbation in the models weights changes the meaning of image drastically, the model is highly uncertain about its output and should assign it an high uncertainty}''.
+The intuition here is ``\textit{if a small perturbation in the models weights changes the meaning of image drastically, the model is highly uncertain about its output and should assign it a high uncertainty}''.
 \end{tcolorbox}
 
 \section{Bayesian Model}
@@ -617,7 +624,7 @@ Their methodology can be broken down into three core components:
     And we get the following expression:
     
     \begin{align}
-    H &= -\nabla^2_\theta \log p(\mathcal{D}|\theta)|_{\theta=\hat\theta} -\nabla^2_\theta \log(\theta)|_{\theta=\hat\theta}\\
+    H &= -\nabla^2_\theta \log p(\mathcal{D}|\theta)|_{\theta=\hat\theta} -\nabla^2_\theta \log p(\theta)|_{\theta=\hat\theta}\\
     &= \nabla_{\theta}^{2}\mathcal{L}_{simple}(\theta)|_{\hat{\theta}} + \gamma I \label{eq:jazbec_laplace}
     \end{align}
     Which gives us the \acs{LA} posterior approximation 
@@ -639,18 +646,18 @@ Their methodology can be broken down into three core components:
 \end{enumerate}
 
 \paragraph{The Theoretical Issues}
-As acknowledged by \cite{jazbec_generative_2025}, This formulation is theoretically flawed when viewed through a strict Bayesian lens. 
+As acknowledged by \cite{jazbec_generative_2025}, this formulation is theoretically flawed when viewed through a strict Bayesian lens. 
 
 Properly applying the Laplace approximation to the posterior $p(\theta|\mathcal{D})$ requires the loss function to be equivalent to the negative log of the joint distribution $-\log p(\theta, \mathcal{D})$, which encompasses both the exact data log-likelihood and a prior term. The framework by \cite{jazbec_generative_2025} falls short on both fronts:
 
 The unweighted \acs{MSE} objective $\mathcal{L}_{simple}(\theta)$ is not equivalent to the negative log joint distribution $-\log p (\theta, \mathcal{D})$ nor is it equivalent to the negative log likelihood $-\log p(\mathcal{D}|\theta)$.
 
 \begin{enumerate}
-    \item $\mathcal{L}_{simple} \not\equiv -\log p(\mathcal{D}|\theta)$. As we have seen in \autoref{sec:bg_diffusion}, $\mathcal{L}_{simple}$ was obtained by dropping the timestep dependent weights from the Loss derived from the theory. $\mathcal{L}_{simple}$ can therefore not be used as a surrogate for the likelihood for the whole reverse diffusion process. \label{enum:l_simple}
+    \item $\mathcal{L}_{simple} \not\equiv -\log p(\mathcal{D}|\theta)$. As we have seen in \autoref{sec:bg_diffusion}, $\mathcal{L}_{simple}$ was obtained by dropping the timestep dependent weights from the loss derived from the theory. $\mathcal{L}_{simple}$ can therefore not be used as a surrogate for the likelihood for the whole reverse diffusion process. \label{enum:l_simple}
     \item $\mathcal{L}_{weighted} \not \equiv -\log p(\theta, \mathcal{D})$. As we have seen in \autoref{sec:bg_laplace}, The diffusion models we use here are trained to find the \acs{MLE}. So even if we use the proper weighted loss, we would only have it be a proper surrogate of the negative log likelihood $-\log p(\mathcal{D}|\theta)$ and not the full joint distribution. \label{enum:l_weighted}
 \end{enumerate}
 
-\ref{enum:l_simple} Will be addressed by changing our perspective from image data to intermediate noise prediction. However, \ref{enum:l_weighted} is a fundamental flaw of how the base model was trained, and the whole point of this method is to not retrain the model, we kept it as it is and considered $\gamma$ to be a regularization constant for the Hessian inversion.
+\ref{enum:l_simple} will be addressed by changing our perspective from image data to intermediate noise prediction. However, \ref{enum:l_weighted} is a fundamental flaw of how the base model was trained, and the whole point of this method is to not retrain the model, we kept it as it is and considered $\gamma$ to be a regularization constant for the Hessian inversion.
 
 % \begin{itemize}
 %     \item \textbf{The Likelihood Discrepancy:} The unweighted \acs{MSE} objective $\mathcal{L}_{simple}(\theta)$ is not mathematically equivalent to the true log-likelihood of the image data $\mathcal{D}$. As acknowledged by the authors, obtaining the true data likelihood would require a specific, complex timestep-dependent weighting scheme.
@@ -669,7 +676,7 @@ By defining an effective dataset of noise-prediction tasks $\mathcal{D}_{noise} 
     p(\mathcal{D}_{noise} | \theta) &= \prod_{i=1}^N p(x_{t,i}, t_i, \epsilon_i | \theta)
 \end{align}
 
-Out of which we can reformulate using Bayes rule:
+We can then reformulate this using Bayes' rule:
 \begin{align}
     p(x_{t,i}, t_i, \epsilon_i | \theta) &= p(\epsilon_i | x_{t,i}, t_i, \theta) \cdot p(x_{t,i}, t_i | \theta)
 \end{align}
@@ -679,7 +686,7 @@ Making the reasonable assumption that $\theta$ has no influence on how timesteps
     p(\mathcal{D}_{noise} | \theta) &= \prod_{i=1}^N p(\epsilon_i | x_{t,i}, t_i, \theta) \cdot p(x_{t,i}, t_i)
 \end{align}
 
-Since we are optimizing $\theta$ when training, anything that's independent of $\theta$ can be viewed as constant. Leaving us with this expression for the \acs{NLL} (negative log likelihood).
+Since we are optimizing $\theta$ when training, anything that's independent of $\theta$ can be viewed as constant. This leaves us with this expression for the \acs{NLL} (negative log likelihood).
 
 \begin{align}
 -\log p(\mathcal{D}_{noise} | \theta) = \sum_{i=1}^N -\log p(\epsilon_i | x_{t,i}, t_i, \theta) + C \label{eq:general_noise_likelihood}
@@ -704,13 +711,13 @@ p(\epsilon_i | x_{t,i}, t_i, \theta) &= \frac{1}{\sqrt{(2\pi \alpha^2)^D}} \exp\
 -\log p(\epsilon_i | x_{t,i}, t_i, \theta) &= \underbrace{-\log\left( \frac{1}{\sqrt{(2\pi \alpha^2)^D}} \right)}_{c \indep \theta} + \frac{1}{2\alpha^2} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 \nonumber
 \end{align}
 
-Grouping the part that's independent to $\theta$ in $c$ and setting $\alpha^2 = 1/2$ allows us to get the exact expression of a term from the  simplified loss (\acs{MSE}).
+Grouping the part that's independent of $\theta$ in $c$ and setting $\alpha^2 = 1/2$ allows us to get the exact expression of a term from the  simplified loss (\acs{MSE}).
 
 \begin{equation}
 -\log p (\epsilon_i | x_{t,i}, t_i, \theta) = ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 + c \label{eq:noise_loss_single_lik}
 \end{equation}
 
-Which leads to the the \acs{NLL}, by injecting \autoref{eq:noise_loss_single_lik} in \autoref{eq:general_noise_likelihood}:
+Which leads to the \acs{NLL}, by injecting \autoref{eq:noise_loss_single_lik} in \autoref{eq:general_noise_likelihood}:
 \begin{align}
     - \log p(\mathcal{D}_{noise}|\theta) &= \sum^N_{i=1} - \log p(\epsilon_i|x_{t,i},t_i,\theta) + C\\
     &= \sum^N_{i=1} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 + C'\\
@@ -750,21 +757,21 @@ Aligning the likelihood with the target noise exposes two theoretical issues tha
 
 \begin{enumerate}
     \item \textbf{IID Violation:} Viewing the training dataset as the original data $\mathcal{D}$ enriched with intermediate noisy states means multiple samples originate from the same clean image, potentially violating the Independent and Identically Distributed (\acs{IID}) assumption. \label{enum:iid_violation}
-    \item \textbf{Multi-Step Inference:} The \acs{LA} is computed on a single-step denoiser $\epsilon_\theta$. Theoretically, uncertainty should be measured over a single step. In practice, however, we use the \acs{LA} to sample network weights, run the full multi-step reverse process, and measure uncertainty only at the final step $T$. \label{enum:multi-step-inference}
+    \item \textbf{Multi-Step Inference:} The \acs{LA} is computed on a single-step denoiser $\epsilon_\theta$. Theoretically, uncertainty should be measured over a single step. In practice, however, we use the \acs{LA} to sample network weights, run the full multi-step reverse process, and measure uncertainty only at the final step $t=0$. \label{enum:multi-step-inference}
 \end{enumerate}
 
 Issue \ref{enum:iid_violation} is more of an open question that we did not have an answer to. 
 Issue \ref{enum:multi-step-inference} however will be discussed in depth now.
 
-\subsection{Mutli-Step Inference in Bayesian Framework}
+\subsection{Multi-Step Inference in Bayesian Framework}
 \label{sub:gu_theory_issue_multi_step}
 
-\cite{jazbec_generative_2025} was based on \cite{kou_bayesdiff_2024}. Two main contribution were made by \cite{jazbec_generative_2025}. The first one was adding a pre-trained (external) semantic encoder to evaluate uncertainty in its latent space rather than in pixel-space. The second was to only evaluate uncertainty on the last step of the reverse diffusion process (final image output). The second being a direct consequence of the first one because the external encoder is not made to process noisy images.
+\cite{jazbec_generative_2025} was based on \cite{kou_bayesdiff_2024}. Two main contributions were made by \cite{jazbec_generative_2025}. The first one was adding a pre-trained (external) semantic encoder to evaluate uncertainty in its latent space rather than in pixel-space. The second was to only evaluate uncertainty on the last step of the reverse diffusion process (final image output). The second being a direct consequence of the first one because the external encoder is not made to process noisy images.
 
-While it is true that a proper Bayesian framework should track uncertainty across all reverse diffusion timesteps, We show much later in the thesis (\autoref{ch:using_internal_encoder}, using an internal encoder that understands intermediate noisy images in the reverse diffusion process) that the final generated image $x_0$ is the best timestep at which to extract the uncertainty if its used to filter for visual quality. 
+While it is true that a proper Bayesian framework should track uncertainty across all reverse diffusion timesteps, We show much later in the thesis (\autoref{ch:using_internal_encoder}, using an internal encoder that understands intermediate noisy images in the reverse diffusion process) that the final generated image $x_0$ is the best timestep at which to extract the uncertainty if it's used to filter for visual quality. 
 So from a pure performance standpoint, it seems like we can get away by tracking uncertainty in the final timestep $t=0$ only.
 
-\cite{gupta_quantifying_2026} (FLARE) also argue that not tracking uncertainty accross all reverse diffusion timesteps prevents us from properly separating epistemic uncertainty\footnote{Uncertainty in the model's knowledge} from aleatoric uncertainty\footnote{Uncertainty stemming from inherent noise in the reverse diffusion process and data}. We argue however that fixing a noise seed for both the starting noise $z$ and stochastic noise injection for DDPMs allows us to properly isolate epistemic uncertainty.
+\cite{gupta_quantifying_2026} (FLARE) also argue that not tracking uncertainty across all reverse diffusion timesteps prevents us from properly separating epistemic uncertainty\footnote{Uncertainty in the model's knowledge} from aleatoric uncertainty\footnote{Uncertainty stemming from inherent noise in the reverse diffusion process and data}. We argue however that fixing a noise seed for both the starting noise $z$ and stochastic noise injection for DDPMs allows us to properly isolate epistemic uncertainty.
 
 % \subsection{FLARE Framework}
 
@@ -775,7 +782,7 @@ So from a pure performance standpoint, it seems like we can get away by tracking
 \section{Uncertainty Computation}
 \label{sec:bg_gu_uncertainty_computation_mc}
 
-In the section, we define the mathematical framework to compute the generative uncertainty starting from the semantic posterior predictive \autoref{eq:semantic_post_pred}. In parallel, we will also describe the approximations made along the way.
+In this section, we define the mathematical framework to compute the generative uncertainty starting from the semantic posterior predictive \autoref{eq:semantic_post_pred}. In parallel, we will also describe the approximations made along the way.
 
 The first step is to compute the semantic posterior predictive:
 \begin{align}
@@ -793,16 +800,16 @@ With $\theta_m \sim q(\theta|\mathcal{D}_{noise})$. We then approximate this mix
     \item First moment (matching the mean): $\mu^* = \frac{1}{\mathrm{M}+1} \sum^{\mathrm{M}}_{m=0} e_m$
     \item Second moment (matching the covariance) (by the law of total variance): 
     \begin{align}
-    \Sigma^* &= \frac{1}{\mathrm{M}+1} \sum^{\mathrm{M}}_{m=0} \sigma^2 I + \frac{1}{\mathrm{M}+1} \sum^\mathrm{M}_{m=0} \left[e_m^2 - \mu^* \right]
+    \Sigma^* &= \sigma^2 I + \frac{1}{\mathrm{M}+1} \sum^\mathrm{M}_{m=0} e_m^2 - (\mu^*)^2
     \end{align}
 \end{itemize}
 
-For efficiency reason, we only consider the diagonal terms of $\Sigma^*$:
+For efficiency reasons, we only consider the diagonal terms of $\Sigma^*$:
 \begin{align}
-    \Sigma^* &\simeq \sigma^2 I + \text{Diag}\left(\frac{1}{\mathrm{M}+1}\sum^\mathrm{M}_{m=0}\left[e_m^2-\mu^*\right] \right) =: \Sigma^{d*}
+    \Sigma^* &\simeq \sigma^2 I + \text{Diag}\left(\frac{1}{\mathrm{M}+1}\sum^\mathrm{M}_{m=0} e_m^2 - (\mu^*)^2 \right) =: \Sigma^{d*}
 \end{align}
 
-In the end, we get $p(e|z,\mathcal{D}) \simeq \mathcal{N}(e;\mu^*,\Sigma^{d*}) =: q(z)$. The generative uncertainty is defined as the entropy of $q(z)$ : $\mathcal{U}(x)$.
+In the end, we get $p(e|z,\mathcal{D}) \simeq \mathcal{N}(e;\mu^*,\Sigma^{d*})$. The generative uncertainty is defined as the entropy of this distribution: $\mathcal{U}(x)$.
 The diagonal covariance matrix $\Sigma^{d*}$ is in $\mathbb{R}^{K\times K}$ we define $\sigma_k$ as its $k$-th diagonal element and the uncertainty is defined as:
 
 \begin{equation}
@@ -820,9 +827,9 @@ Although we've defined the \acs{LA}, we've yet to detail how we can compute $H$,
 
 This matrix captures the geometric curvature of the loss landscape, where the inverse of this curvature ($H^{-1}$) dictates the model's epistemic uncertainty (the covariance matrix $\Sigma_{\theta}$).  
 
-$H$ is made out of two parts, the hessian of the negative log likelihood (\acs{NLL}) and the hessian of the negative log prior. 
+$H$ consists of two parts: the Hessian of the negative log likelihood (\acs{NLL}) and the Hessian of the negative log prior. 
 
-For a neural network with $P$ parameters, the exact hessian matrix of the \acs{NLL} $H_{NLL}\in \mathbb{R}^{P \times P}$ scales quadratically. For modern architectures with millions of weights, computing, storing, and later inverting the dense $H$ dense matrix is almost impossible.
+For a neural network with $P$ parameters, the exact hessian matrix of the \acs{NLL} $H_{NLL}\in \mathbb{R}^{P \times P}$ scales quadratically. For modern architectures with millions of weights, computing, storing, and later inverting the dense matrix $H$ is almost impossible.
 
 To make the computation tractable, \cite{jazbec_generative_2025} approximate the curvature using the empirical Fisher Information Matrix (\acs{FIM}).
 
@@ -845,7 +852,7 @@ In the end, we get
 H \simeq \mathrm{Diag}(\hat{F}) + \gamma I
 \end{equation}
 
-To further reduce $P$, instead of using a \acs{LA} over full network, \cite{jazbec_generative_2025} restricts the approximation to the last layer of the network $=:$ Last Layer Laplace Approximation \acs{LLLA}.
+To further reduce $P$, instead of using a \acs{LA} over the full network, \cite{jazbec_generative_2025} restricts the approximation to the last layer of the network $=:$ Last Layer Laplace Approximation \acs{LLLA}.
 
 \begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
 \cite{gupta_quantifying_2026} heavily criticizes the \acs{LLLA} and suggests instead a random subnetwork Laplace approximation with a full covariance matrix. They argue that it's preferable to have a posterior approximation that samples less parameters than the \acs{LLLA} but across more layers and using a full covariance matrix to keep the interactions parameters have between them.
