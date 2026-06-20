@@ -1,0 +1,42 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+% \epigraph{``Tut, tut, child!'' said the Duchess. ``Everything’s got a
+% moral,\\if only you can find it.''}{\textit{Alice’s Adventures in Wonderland}\\\textsc{Lewis Carroll}}
+
+% This, then, is the grand summary of what you have accomplished.  You may
+% well imagine that many readers will read \autoref{cha:introduction}, and
+% then skip right to \autoref{cha:conclusion}, and if, and only if, those two
+% parts are interesting, might be tempted to read the rest. A consequence is
+% that you should ensure that the reader will gain a good overall
+% understanding of what you have done by reading only the conclusion.  Thus,
+% this is a place to summarise all that has gone before, before finally
+% concluding on the results of your experiments and the validity of your
+% hypotheses. It is also important to ensure that \autoref{cha:introduction}
+% (which in all likelihood was written first) still aligns closely with the
+% work done and the conclusions reached.
+
+% Apart from reporting on your results, \ie your product, this is also a good
+% place to reflect on your process, and to discuss the wider consequences or
+% ramifications of your work. What would you like to impart to others going
+% down your path of inquiry? What would you have liked to have known, when you
+% first began your work?
+
+% If you so desire, this is also where you might add a section on Future Work,
+% where you point in the directions that should be followed to complete the
+% work you have already accomplished. This should, however, probably be the
+% very last thing on your to-do list.
+\section{Discussion}
+
+Advantages of using DNI instead of LA ? the internal extractor is already trained on the whole dataset, LA in jazbec et al was only trained on 1 percent, weird to claim epistemic uncertainty that is only aware on 1 percent of the dataset...
+
+\section{Conclusion}
+
+In this thesis, we set out to formalize and incrementally improve the Generative Uncertainty (\acs{GU}) framework introduced by \cite{jazbec_generative_2025} By first replicating their ADM and Toy model experiments, we established a solid foundation on which to build. From a theoretical standpoint, we resolved inconsistencies in the original Bayesian formulation by reframing the simple MSE loss around the model's actual noise-prediction task, offering a more rigorous exact likelihood model. Furthermore, recognizing the structural weaknesses of standard Inception-based metrics like FID and their tendency to contradict human judgment, we introduced the HPSv3 metric to act as an independent, human-aligned oracle for individual image evaluation.
+
+Our subsequent experiments yielded several critical insights into how uncertainty behaves in diffusion models. When integrating a classifier into the ADM architecture, we observed that while guidance significantly improves the base image quality, it makes filtering methods somewhat redundant for overall dataset improvement, though they remain strictly necessary for flagging individual artifacts. Through our Toy experiment, we demonstrated that the Last Layer Laplace Approximation (\acs{LLLA}) can actually be highly effective at filtering out hallucinations, provided the covariance matrix is stabilized via a high prior (\acs{ICLA}) or temperature scaling. While the \acs{LLLA} structurally lacks the broad epistemic capacity of a Deep Ensemble to capture multi-mode ambiguity, it remains a highly capable approximation for out-of-distribution detection.
+
+Our most significant finding, however, emerged from the Direct Noise Injection (\acs{DNI}) experiment. We hypothesized and proved that the success of the original GU framework was heavily reliant on the external CLIP encoder's sensitivity to off-manifold instability, rather than the diffusion model's actual posterior spread. Bypassing the complex Bayesian posterior entirely with simple pixel-space noise perturbations yielded near-identical filtering results.
+
+To fix this fundamental flaw and restore the integrity of the uncertainty measurement, we replaced the external encoder with internal semantic features extracted directly from the \acs{ADM}'s U-Net decoder. We found that tapping into the attention block \texttt{output\_block.1.1} near the end of the reverse diffusion process ($t=5$) provided an uncontaminated uncertainty metric tied directly to the model's own training manifold. This internal approach successfully outperformed the external \acs{CLIP} encoder on FID and Recall retention during filtering, proving that internal representations are superior at judging the model's true statistical distribution.
+
+For future work, applying the \acs{DNI} method to our internal U-Net encoder is a logical next step that could provide cheap, highly relevant uncertainty evaluations without relying on the Bayesian framework at all. Additionally, exploring more complex posterior approximations \parencite{gegenfurtner_reducing_2026} could recover a Bayesian uncertainty signal strong enough to overcome the heavy approximations inherent to the \acs{LLLA}.

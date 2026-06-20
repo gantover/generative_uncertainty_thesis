@@ -1,0 +1,28 @@
+%*******************************************************
+% Abstract
+%*******************************************************
+%\renewcommand{\abstractname}{Abstract}
+\pdfbookmark[1]{Abstract}{Abstract}
+\begingroup
+\let\clearpage\relax
+\let\cleardoublepage\relax
+\let\cleardoublepage\relax
+
+\chapter*{Abstract}
+
+Diffusion models can produce high-quality synthetic data by reversing a progressive noise process. Occasionally, they generate low-quality samples with severe artifacts. Recent advancements have proposed using Bayesian based generative uncertainty to flag poor generations by measuring the variability of a posterior predictive distribution. Notably, \parencite{jazbec_generative_2025} introduced a framework utilizing a last-layer Laplace approximation (\acs{LLLA}) combined with a semantic likelihood. By evaluating sample variability across multiple models (from \acs{LLLA}) outputs in the latent space of a pretrained feature extractor, this approach seems to successfully isolates semantic uncertainty in the image generation and outperforms previous pixel-space methods \parencite{kou_bayesdiff_2024}.
+
+% Although \parencite{jazbec_generative_2025} offered promising results, this thesis will further formalize and explore how to improve their framework.
+% We will go trough fixing some inconsistencies in the bayesian model from \cite{jazbec_generative_2025} first. Then we will reproduce some of the their results and add a new metric that will mimic human preferences scores. Finally, we will try to improve the method on two models: A toy model for quick experiments on the posterior weights distribution approximation and a state of the art \acs{ADM} diffusion model to see if we can translate improvements from the toy model. We will however discover a critical flaw in \cite{jazbec_generative_2025} that makes their uncertainty estimation biased by the external feature extractor and too expensive. The final experiment of this thesis will try to fix this flaw.
+
+Although \cite{jazbec_generative_2025} offered promising results, this thesis formalizes and improves their framework. We first fix inconsistencies in their Bayesian model by reframing the likelihood around the model's actual noise-prediction task. We then reproduce their results and introduce a new metric based on human preference scores (\acs{HPS}) to address the structural flaws of standard \texttt{Inception}-based metrics. Through experiments on a 2D toy model, we demonstrate that the \acs{LLLA} can effectively filter out hallucinations when the covariance matrix is properly stabilized. 
+Crucially, when extending the method to a state-of-the-art \acs{ADM} diffusion model, we discover a fundamental flaw in \parencite{jazbec_generative_2025}: their uncertainty estimation is heavily biased by the external feature extractor. We prove this via a Direct Noise Injection \acs{DNI}) experiment, demonstrating that bypassing the complex Bayesian posterior entirely in favor of simple pixel-space noise yields near identical filtering results. To solve this and restore the integrity of the uncertainty measurement, we replace the external extractor with internal semantic features taken directly from the \acs{ADM}'s U-Net decoder. This internal approach successfully isolates the model's true statistical distribution and outperforms the external encoder on key metrics.
+% Then, we add a new Vision Language Model (VLM) metric directly based on human preference \parencite{ma_hpsv3_2025}, to offer an alternative to the FID metric that may not be optimal to judge images \parencite{jayasumana_rethinking_2024}.
+% Finally, newer papers have questioned the LLLA's ability to generate good (low loss) model weights. Notably \parencite{gegenfurtner_reducing_2026}, \parencite{gupta_quantifying_2026} provide better posterior approximation at the cost of an high implementation complexity. In this thesis, we will explore and measure the metrics impact of (easy to implement) improvement to the approximation (for instance, including more layers to the LA).
+
+
+\vfill
+
+\endgroup			
+
+\vfill

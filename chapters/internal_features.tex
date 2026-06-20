@@ -1,0 +1,227 @@
+\chapter{Using an Internal Encoder}
+\label{ch:using_internal_encoder}
+
+!!Restoring the original method with an internal encoder, !!mention that it was future work in the jazbec paper as well
+
+\section{The Problem With External Encoders}
+
+The \acs{DNI} experiment in \autoref{ch:semantic-encoder} revealed a fundamental
+tension in the \citeauthor{jazbec_generative_2025} framework: by introducing an external
+semantic encoder such as \acs{CLIP}, the method inadvertently displaced the epistemic
+uncertainty signal away from the diffusion model and into the encoder itself. One can
+bypass the posterior approximation entirely and still achieve near-identical filtering
+performance, which goes
+against the Bayesian motivation of the original framework. 
+As formalized in \autoref{sec:formalize_dni_method}, 
+the uncertainty score is proportional to the log Jacobian norms of the encoder, so the method effectively measures the encoder's local instability
+rather than the diffusion model's posterior spread.
+
+The natural fix is to use a feature representation that is \emph{internal} to the
+diffusion model: semantically rich enough to avoid pixel-space pathologies, but directly
+tied to the diffusion model's own learned manifold.
+
+\section{Architecture of the ADM Model}
+\label{sec:adm-architecture}
+
+To understand why internal diffusion features can serve as a robust semantic representation, it is necessary to examine the architecture of the \acs{ADM} (Ablated Diffusion Model) \parencite{dhariwal_diffusion_2021}. At its core, the \acs{ADM} relies on a U-Net architecture designed to take a noisy image as input and predict the added noise (or the denoised image) at the exact same spatial resolution. It achieves this through a symmetric pathway of encoding (downscaling) and decoding (upscaling) built primarily upon convolutional layers, augmented by attention mechanisms.
+
+\paragraph{Convolutions and Local Features}
+The foundational building block of the network is the convolutional layer. A convolution operation slides a small matrix of weights (a kernel or filter) across the input image or feature map, computing dot products at each spatial location. This allows the network to detect local patterns regardless of where they appear in the image. 
+% In early layers, convolutions capture basic structural elements like edges and textures; in deeper layers, they combine these elements to represent complex objects and semantic concepts.
+
+\paragraph{The Encoder and Downscaling}
+The first half of the U-Net is the encoder, which progressively compresses the spatial dimensions of the input while expanding its features depth. This downscaling is achieved through strided convolutions or pooling operations, which reduce the width and height of the feature maps (e.g., from $128 \times 128$ to $64\times 64$). As spatial resolution decreases, the number of feature channels ($C_\ell$) increases. This process forces the network to discard fine-grained, pixel-level spatial details and instead encode, high-level semantic information. The network reaches its most compressed state at the ``bottleneck'', where the spatial dimensions are at their minimum and the channel count is at its maximum.
+
+% These attention layers allow the model to weigh the importance of all spatial locations relative to one another simultaneously, 
+% combining the local feature extraction of convolutional layers with the global semantic awareness of Transformers.
+
+\paragraph{The Decoder and Upscaling.}
+The second half of the U-Net is the decoder, which is responsible for projecting the compressed, abstract representations back into the original pixel space. It achieves this through upscaling operations, progressively increasing spatial resolution while decreasing the channel count. To ensure that fine spatial details lost during downscaling are retained, the U-Net employs ``skip connections'' that directly concatenate feature maps from the encoder to their corresponding layers in the decoder.
+
+\paragraph{Global Context via Attention}
+While convolutions are highly effective at capturing local features, they struggle with long range dependencies (e.g. understanding how a feature in the top left corner of an image relates to one in the bottom-right). To address this, the \acs{ADM} U-Net intersperses attention layers throughout its architecture, particularly at lower resolutions ($8 \times 8$ to $32 \times 32$). 
+% \vspace{1em}
+% \textit{(You can then transition smoothly into your modified Section 2, where you explain exactly why you target the start of this decoder phase.)}
+% \vspace{1em}
+
+% \section{UNet Bottleneck Features}
+% \label{sec:bottleneck}
+
+% The \acs{ADM} UNet produces intermediate feature maps throughout its decoder blocks (\texttt{output_blocks}). Because the network's understanding of the image is most semantically concentrated at the lowest resolutions, we target the features generated immediately after the bottleneck. At this stage, the spatial resolution is low and the channel count is high, providing a compact, highly descriptive representation of the image manifold without requiring any external encoder.
+
+% We extract these features using PyTorch forward hooks... *(continue with your original text)*
+
+\section{UNet Features Uncertainty}
+\label{sec:bottleneck}
+
+The \acs{ADM} UNet produces intermediate feature maps at its decoder blocks
+(\texttt{output\_blocks}) \autoref{tab:adm-unet-decoder}. Near the bottleneck, spatial resolution is low and channel count $C_\ell$ is high, giving a compact, semantically rich representation without any external encoder. We extract these features using PyTorch forward hooks: for each forward pass,
+the hook applies global average pooling (\texttt{F.adaptive\_avg\_pool2d}) to collapse
+spatial dimensions, yielding a $C_\ell$-dimensional vector per image. Hooks are
+registered once before the weight-draw loop and removed afterwards, leaving the network
+unaltered.
+
+% \paragraph{Layer selection (WIP)} Early decoder blocks are preferred for two reasons. First,
+% they are closest to the bottleneck and therefore most semantically rich. 
+
+% Second, as one moves further into the decoder the spatial resolution grows, rapidly increasing $C_\ell$
+% and with it the variance of the entropy estimator which is problematic given only
+% $M = 6$ samples. 
+% The exact channel dimensions should be confirmed at runtime via \texttt{dict(model.named\_modules())}.
+
+\begin{table}[!htbp]
+\centering
+\caption{ADM UNet \texttt{output\_blocks} structure for ImageNet $128\times128$,
+         extracted from \texttt{model.named\_modules()}.
+         Each output blocks is made out of a sequence of submodules.
+         % The \texttt{.2} sub-block in blocks 2, 5, 8, and 11 is the up/downsampling
+         % ResBlock. Blocks 9--14 operate without attention.
+         We assign indexes to sub-modules inside each block (e.g. \texttt{0.Res} in \texttt{output\_block.0} will be identified as \texttt{output\_blocks.0.0}, the first sub-module in the first block)}
+\label{tab:adm-unet-decoder}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Block} $\downarrow$ & \textbf{Sub-modules} $\rightarrow$ & \textbf{Spatial res.} & \textbf{Channels}\\
+\midrule
+output\_blocks.0  & 0.Res + 1.Attention & $8\times8$     & 1024  \\
+output\_blocks.1  & 0.Res + 1.Attention & $8\times8$     & 1024  \\
+output\_blocks.2  & 0.Res + 1.Attention + Upsample   & $8\times8$     & 1024 \\
+\midrule
+output\_blocks.3  & 0.Res + 1.Attention & $16\times16$   & 512 \\
+output\_blocks.4  & 0.Res + 1.Attention & $16\times16$   & 512 \\
+output\_blocks.5  & 0.Res + 1.Attention + Upsample   & $16\times16$   & 512 \\
+\midrule
+\dots & \dots & \dots & \dots\\
+output\_blocks.14 & 0.Res & $128\times128$ & 256  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Timestep selection} Features are captured at the following \acs{DDIM} loop indices:
+\begin{equation}
+    t \in \{45, 40, 35, 30, 25, 20, 15, 10, 5\}
+\end{equation}
+out of 50 \acs{DDIM} steps, with $0$ being the final output $x_0$ and $50$ being the starting noise $z$.
+These are not raw diffusion timesteps as in \acs{DDPM}: each index in a 50-step uniform schedule
+maps to a specific $t$ determined by the \acs{DDIM} skip schedule (\autoref{sec:bg_diffusion}).
+
+\paragraph{Uncertainty computation} For a given (layer, timestep) pair, the
+$C_\ell$-dimensional feature vectors from all $\mathrm{M}$ draws are stacked into an
+$(N, \mathrm{M}, C_\ell)$ tensor (with $N$ the number of images generated per model). Per-image entropy is computed under a diagonally approximated Gaussian:
+% \begin{equation}
+%     U(\mathbf{x}) = \frac{1}{2} \sum_{k=1}^{C_\ell} \ln\!\left(\hat{\sigma}^2_{\phi,k}
+%     \right) + \frac{C_\ell}{2}\ln(2\pi e).
+%     \label{eq:internal-entropy}
+% \end{equation}
+\begin{equation}
+    U(\mathbf{x}) = \frac{1}{2} \sum_{k=1}^{C_\ell} \ln\!\left(\hat{\sigma}^2_{\phi,k}
+    \right) + const
+    \label{eq:internal-entropy}
+\end{equation}
+
+Where $\hat{\sigma}^2_{\phi,k}$ is the empirical variance computed from the k-th dimension of the $C_\ell$ sized feature vector across the the $\mathrm{M}$ models outputs.
+
+\subsection{The Experiment}
+
+We are going to conduct an ablation to find the best sub-module (\texttt{output\_blocks.i.j} \autoref{tab:adm-unet-decoder}) and timestep $t$ at which to extract the feature maps in order to minimize the \acs{HPS} \acs{AURC} metric. 
+
+We use the \acs{HPS} \acs{AURC} metric because it is much faster to compute than the \acs{FPR} metrics and gives a single number as output which makes the comparison easy. 
+
+Once we find the best combination, we compare it to results obtained with the original \acs{CLIP} based method on both the \acs{HPS} \acs{AURC} and the \acs{FPR} metrics.
+
+We will go trough the layers and sub-modules contained in \texttt{output\_block.i.j} $i \in [0,\dots 5]$. and timesteps $t \in \{45,40,\dots,5\}$.
+
+\subsection{Results}
+
+First, for each sub-module we compute the \acs{HPS} \acs{AURC} for each $t$ and report the best value for each sub-module. We get the following results:
+
+\begin{lstlisting}[frame=tb,caption={best AURC(t) per sub-module},label=lst:useless]
+output_blocks.0.0 best AURC: 11.76 at t=5 <--
+output_blocks.0.1 best AURC: 11.82 at t=5
+output_blocks.1.0 best AURC: 11.87 at t=5
+output_blocks.1.1 best AURC: 11.74 at t=5 <--
+output_blocks.2.0 best AURC: 11.96 at t=5
+output_blocks.2.1 best AURC: 11.86 at t=5
+output_blocks.2.2 best AURC: 11.87 at t=5
+output_blocks.3.0 best AURC: 11.98 at t=5
+output_blocks.3.1 best AURC: 11.95 at t=5
+output_blocks.4.0 best AURC: 12.13 at t=5
+output_blocks.4.1 best AURC: 12.09 at t=5
+output_blocks.5.0 best AURC: 12.22 at t=5
+output_blocks.5.1 best AURC: 12.12 at t=5
+output_blocks.5.2 best AURC: 12.16 at t=5
+\end{lstlisting}
+
+The two best layers are \texttt{output\_block.1.1} (AttentionBlock) followed closely by \texttt{output\_block.0.1} (AttentionBlock) the general trend is that the higher (block id) we go in the decoder, the worse the \acs{HPS} \acs{AURC} gets. The minimum \acs{AURC} is always obtained at the minimum timestep $t=5$ (closest fully denoised to final output).
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/internal/aurc_unet_t.pdf}
+    \caption{\acs{HPS} \acs{AURC} across $t$ for \texttt{output\_block.1.1}}
+    \label{fig:aurc_unet_t}
+\end{figure}
+
+
+We can take a closer look at the \acs{HPS} \acs{AURC} for \texttt{output\_block.1.1} at each $t$ in \autoref{fig:aurc_unet_t}. It seems like going down to $t=0$ should yield even better results.
+
+\begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
+The observation that $t=0$ should be the best timestep at which to compute uncertainty helps justifying \cite{jazbec_generative_2025} approach to only track generative uncertainty at the last step of the reverse diffusion process instead of during whole process (\autoref{sub:gu_theory_issue_multi_step}).
+\end{tcolorbox}
+
+\paragraph{UNET vs CLIP on the AURC HPSv3 metric}
+Let's now compare the UNET Internal Sub-Module \texttt{output\_block.1.1} at $t=5$ to the \acs{CLIP} external feature extractor. We can see on \autoref{fig:aurc_clip_unet} that despite not being as good as clip we manage to remain surprisingly close in the lower rejection rates.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/internal/aurc_clip_unet.pdf}
+    \caption{HPSv3 Rejection Curve comparing the uncertainty we get when using the CLIP encoder against the Internal UNET encoder}
+    \label{fig:aurc_clip_unet}
+\end{figure}
+
+It's not so surprising that CLIP works better at filtering for an \acs{HPS} metric.
+HPSv3 and CLIP were both trained on a dataset of natural images that goes beyond what ImageNet contains. Whereas our Internal UNET encoder from \acs{ADM} was only trained on ImageNet. As we've seen in \autoref{ch:semantic-encoder}, the uncertainty score is largely influenced by the training manifold of the encoder, \acs{CLIP} having a training manifold closer to the HPSv3 model than \acs{ADM} gives \acs{CLIP} an advantage over the Internal UNET on the HPSv3 metric specifically.
+
+\paragraph{UNET vs CLIP on the FID, Precision and Recall metrics}
+Let's now compare CLIP and UNET Internal on the \acs{FPR} metrics \autoref{sec:inception_metrics}. FID for instance is comparing the statistical distribution of a large subset of the reference ImageNet dataset with a subset of the \acs{ADM} generated images (The subset is created by removing the highest uncertainty images first).
+We expect Internal UNET to perform better on those metrics since it is made to filter out images that are out of the training manifold of \acs{ADM} itself.
+\autoref{fig:unet_vs_clip_fpr} mostly confirms this by
+\begin{itemize}
+    \item FID: Remains lower than CLIP for longer, meaning the UNET uncertainty understands better what is not a valid sample with respect to the ImageNet dataset statistical distribution.
+    \item Recall: Remains much higher, we manage to maintain more diversity during the filtering.
+    \item Precision: The cost of higher recall is usually linked to a lower precision, which is also the case here, but we manage to not lose too much here.
+\end{itemize}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figures/internal/unet_vs_clip_fpr.pdf}
+    \caption{Comparing the uncertainty we get when using the CLIP encoder against the Internal UNET encoder on the \acs{FPR} metrics. \warning as previously explained in \autoref{sub:problems_inception}, the \texttt{random} baseline should be flat, it's growth represent the bias induced by reducing the number of samples that affects all baselines}
+    \label{fig:unet_vs_clip_fpr}
+\end{figure}
+
+\subsection{Future Work}
+
+
+
+\paragraph{Direct Noise Injection}
+With this chapter, we've not actually fixed the Bayesian Framework, with \autoref{ch:semantic-encoder} we've seen that any encoder could be used with the Direct Noise Injection (\acs{DNI}) Method. It is highly likely that the internal encoder we've just derived in \autoref{ch:using_internal_encoder} can be used with \acs{DNI} and provide similar results as the Bayesian \acs{LLLA} posterior. 
+% The fact that $t=0$ seemed to be the best performing timestep to compute the uncertainty is even more encouraging as it implies that we can use already 
+Although doing so would completely depart from the Bayesian framework, it would still provide valuable uncertainty measurement that are directly linked to the model's training manifold. Testing an internal encoder with \acs{DNI} is left as future work.
+
+Still, Bayesian framework should not be discredited, as it is also likely that heavy approximations made the Bayesian uncertainty signal very weak. Improving the posterior approximation significantly with methods such as \cite{gegenfurtner_reducing_2026} to see if we can get a useful bayesian uncertainty signal back is also left as future work. 
+
+\paragraph{The Last Layer Perturbation}
+One important caveat that further discredits the heavily approximated Bayesian posterior's role in the uncertainty score: only the last layer of the \acs{ADM} model is perturbed by the
+\acs{LLLA}. The variance in intermediate features is therefore entirely a downstream consequence of that last-layer perturbation propagated through the forward pass, not a direct measure of uncertainty in those layers. Either this was enough to capture meaningful epistemic uncertainty or as previously suggested, the Bayesian model is over-approximated and acts more like a random noise generation similar to the \acs{DNI} method than a proper Bayesian uncertainty signal which could be enough to get meaningful results and further motivates trying \acs{DNI} on the internal encoder.
+% We've however observed that this signal was sufficient to capture a meaningful epistemic uncertainty signal. But it would be worthwhile to perturb the weights of the internal UNET layer selected for the encoder to strengthen the uncertainty signal and improve the method further.
+
+% \paragraph{Timestep $t=0$}
+% Lastly, we've tried timesteps in the range $[45,5]$ but the observations suggests that better results could be obtained at $t=0$.
+
+\paragraph{Feature Extraction}
+
+The internal feature extraction method itself could be improved in a couple of ways. 
+
+First, we've not measured the correlation between the uncertainty measurement taken at different timesteps and sub-modules, if they happen to complement each other, it should be possible to combine them together and get better results.
+
+Then, we've used a rather simple average pooling of $8\times8, 16 \times 16, \dots$ feature maps to get our feature vector. Doing so loses a lot of information and is probably not be the best method.
+
+Finally, results suggested that $t=0$ would be an even ``better'' timestep at which to compute uncertainty w.r.t. the \acs{HPS} \acs{AURC} metric.

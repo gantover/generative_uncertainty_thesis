@@ -1,0 +1,61 @@
+% \chapter{Introductory Experiments and Results Reproduction}
+
+% \section{Introduction}
+
+% In this chapter, we try to replicate some of the results from \parencite{jazbec_generative_2025} to prove that we got a working setup to build upon and we extend slightly extend their setup to get deeper insight.
+
+\chapter{Reproducing the Toy Experiment}
+\label{ch:reproduce_toy}
+
+The toy experiment utilizes a standard Denoising Diffusion Probabilistic Model (DDPM \autoref{sec:bg_diffusion}) implemented via a simple multi-layer perceptron (MLP) architecture. 
+
+This architecture is trained on a synthetic two dimensional dataset consisting of a mixture of 25 distinct Gaussian modes arranged in a square grid. The training dataset comprises $100,000$ samples drawn from this underlying ground-truth distribution (\autoref{fig:toy_data}). 
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/toy_experiment/toy_data.png}
+    \caption{Train Dataset and Generated (Unfiltered) Dataset}
+    \label{fig:toy_data}
+\end{figure}
+
+During the reverse diffusion process, the DDPM occasionally interpolates between the well-defined modes, generating synthetic data points that have near-zero probability mass in the original training distribution. The primary objective of this toy setup is to investigate the effectiveness of generative uncertainty at filtering \textit{hallucinations} defined as those out of distribution mode interpolations.
+% which are due to the neural network struggling to accurately model the sharp jumps in the true score function that separate these disjoint Gaussian modes. Instead of a perfect step function, the network learns a smoothed, tempered approximation, which inadvertently creates a region of uncertainty between neighboring modes. 
+
+% Consequently, during the reverse diffusion process, the DDPM occasionally interpolates between these well-defined modes, generating synthetic data points that have near-zero probability mass in the original training distribution.
+\section{Code Setup}
+
+We are trying to replicate the toy experiment done in \parencite{jazbec_generative_2025} which itself is based on the code provided by \parencite{aithal_understanding_2024}.
+
+Since the code for \parencite{jazbec_generative_2025} toy experiment was not available, we started from \parencite{aithal_understanding_2024} \texttt{github} code and extended it to try and replicate \parencite{jazbec_generative_2025} experiment.
+
+Unfortunately, we couldn't replicate \parencite{jazbec_generative_2025} setup fully because they did not specify every parameters used. We therefore mostly went with the defaults parameters from \parencite{aithal_understanding_2024}.
+
+\section{Experiment Setup}
+
+\paragraph{Creating the Ensemble}
+To match what was done in \cite{jazbec_generative_2025}, We went with a deep ensemble of 1+M models trained on the same exact reference dataset of 100000 samples. M was set at 5. 
+\begin{tcolorbox}[colback=blue!10!white,colframe=blue!50!black,sharp corners]
+It is important to note that a Deep ensemble behaves very different from a Laplace Approximation based ensemble in how they explore the weight space. This motivates trying the \acs{LA} on the toy model later on in \autoref{ch:toy_exp_posterior}.
+\end{tcolorbox}
+
+\paragraph{Inference}
+We created a dataset of pure noise and gave this pure noise dataset to all 1+M models to generate $2^{16}=65536$ samples per model. We fixed the \texttt{pytorch} seed such that the inference randomness of the DDPM is the same across the 6 models(to isolate the epistemic uncertainty properly).
+
+
+
+
+% \sub
+\paragraph{Uncertainty Calculation}
+The uncertainty was calculated as the entropy of a moment matched gaussian distribution (with diagonal approximation of the covariance) as described in \parencite{jazbec_generative_2025} method (\autoref{sec:bayesian_model}). 
+
+
+\section{Experiment Results}
+
+We see on \autoref{fig:toy_repr_de_77} that we visually are able to get similar effectiveness at filtering bad samples as \cite{jazbec_generative_2025}. Therefore proving our codebase is ready for further experiments.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/toy_experiment/DE_77.png}
+    \caption{Result when keeping $77\%$ of the best generated samples with respect to G.U. going from Generated Dataset (middle) to Filtered Dataset (right) aiming to get closer to Train Dataset (left)}
+    \label{fig:toy_repr_de_77}
+\end{figure}

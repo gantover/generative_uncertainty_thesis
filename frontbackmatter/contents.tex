@@ -1,0 +1,61 @@
+%*******************************************************
+% Table of Contents
+%*******************************************************
+%\phantomsection
+\refstepcounter{dummy}
+\pdfbookmark[1]{\contentsname}{tableofcontents}
+\setcounter{tocdepth}{2} % <-- 2 includes up to subsections in the ToC
+\setcounter{secnumdepth}{3} % <-- 3 numbers up to subsubsections
+\manualmark
+\markboth{\spacedlowsmallcaps{\contentsname}}{\spacedlowsmallcaps{\contentsname}}
+\tableofcontents 
+\automark[section]{chapter}
+\renewcommand{\chaptermark}[1]{\markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\enspace\spacedlowsmallcaps{#1}}}
+%*******************************************************
+% List of Figures and of the Tables
+%*******************************************************
+\clearpage
+
+\begingroup 
+    \let\clearpage\relax
+    \let\cleardoublepage\relax
+    \let\cleardoublepage\relax
+    %*******************************************************
+    % Acronyms
+    %*******************************************************
+    %\phantomsection 
+    \refstepcounter{dummy}
+    \pdfbookmark[1]{Acronyms}{acronyms}
+    \markboth{\spacedlowsmallcaps{Acronyms}}{\spacedlowsmallcaps{Acronyms}}
+    \chapter*{Acronyms}
+    \begin{acronym}[UMLX]
+        \acro{FID}{Fréchet Inception Distance}
+        \acro{AURC}{Area Under the Risk-Coverage curve}
+        \acro{DDIM}{Denoising Diffusion Implicit Models}
+        \acro{DDPM}{Denoising Diffusion Probabilistic Models}
+        \acro{DE}{Deep Ensemble}
+        \acro{LA}{Laplace Approximation}
+        \acro{LLLA}{Last Layer Laplace Approximation}
+        \acro{ICLA}{Identity Curvature Laplace Approximation}
+        \acro{LoRA}{Low-Rank Adaptation}
+        \acro{CPE}{Cold Posterior Effect}
+        \acro{MSE}{Mean Squared Error}
+        \acro{IID}{Independent and Identically Distributed}
+        \acro{GU}{Generative Uncertainty}
+        \acro{MC}{Monte Carlo}
+        \acro{MAP}{Maximum A Posteriori (Estimator)}
+        \acro{MLE}{Maximum Likelihood Estimation}
+        \acro{ADM}{Ablated Diffusion Model}
+        \acro{CLIP}{Contrastive Language-Image Pre-Training}
+        \acro{NLL}{Negative Log Likelihood}
+        \acro{LLM}{Large Language Model}
+        \acro{DNI}{Direct Noise Injection}
+        \acro{FPR}{FID, Precision and Recall}
+        \acro{VLM}{Vision Language Model}
+        \acro{HPS}{Human Perception Score}
+        \acro{OOD}{Out Of Distribution}
+        \acro{DEE}{Deep Ensemble Equivalent}
+        \acro{MoLA}{Mixtures of Laplace Approximations}
+    \end{acronym}                     
+\endgroup
