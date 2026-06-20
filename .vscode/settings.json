@@ -1,0 +1,28 @@
+{
+  "latex-workshop.latex.recipe.default": "latexmk (pdflatex)",
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk (pdflatex)",
+      "tools": ["latexmk"]
+    }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "latexmk",
+      "command": "latexmk",
+      "args": [
+        "-pdf",
+        "-bibtex",
+        "-interaction=nonstopmode",
+        "-synctex=1",
+        "%DOC%"
+      ],
+      "env": {
+        "TEXINPUTS": "./external//:"
+      }
+    }
+  ],
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.magic.args": [],
+  "latex-workshop.view.pdf.viewer": "tab"
+}
