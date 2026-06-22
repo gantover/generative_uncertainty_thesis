@@ -1,7 +1,7 @@
 \chapter{Background}
 \label{ch:background}
 
-This chapter will first go through the theoretical background needed to understand this thesis. This includes: the filtering metrics used to judge the quality of individual images, evaluations metrics to judge how those filtering metrics perform on a whole dataset of images, diffusion models, Bayesian machine learning and the Laplace approximation.
+This chapter will first go through the theoretical background needed to understand this thesis. This includes: the filtering metrics used to judge the quality of individual images, evaluation metrics to judge how those filtering metrics perform on a whole dataset of images, diffusion models, Bayesian machine learning and the Laplace approximation.
 Additionally, practical and theoretical issues will be highlighted and linked to their consequences and solutions in later chapters.
 
 \section{Inception Based Metrics}
@@ -10,7 +10,7 @@ Additionally, practical and theoretical issues will be highlighted and linked to
 In this section, we define the FID \parencite{heusel_gans_2018}, Precision, Recall, Realism \parencite{kynkaanniemi_improved_2019} and Rarity \parencite{han_rarity_2022} metrics. All of these operate in a shared feature space: each image (real or generated) is embedded by a pretrained \texttt{Inception-v3} network, yielding a feature vector $\phi$. We write $\boldsymbol{\Phi}_r = \{\phi_r^i\}$ and $\boldsymbol{\Phi}_g = \{\phi_g^i\}$ for the real and generated embedded feature sets respectively. For later definitions that can take either the real or generated feature set, we use $\boldsymbol{\Phi} \in \{\boldsymbol{\Phi}_r, \boldsymbol{\Phi}_g\}$.
 
 We will first go through the batch scale\footnote{Batch scale refers to metrics that need a whole (large) dataset of generated samples to be computed on.} metrics \acs{FPR} (FID, Precision and Recall) aimed to evaluate the ``quality'' of the generated dataset compared to the real dataset.
-We first define the simplest metric: the \acs{FID} from \cite{heusel_gans_2018} which relies on fitting multivariate gaussian to generated and real datasets. Then we introduce two slightly more complex metrics: the ``improved'' Precision and Recall as presented in \cite{kynkaanniemi_improved_2019} which rely on a k-NN manifold approximation.
+We first define the simplest metric: the \acs{FID} from \cite{heusel_gans_2018} which relies on fitting a multivariate Gaussian to the generated and real datasets. Then we introduce two slightly more complex metrics: the ``improved'' Precision and Recall as presented in \cite{kynkaanniemi_improved_2019} which rely on a k-NN manifold approximation.
 
 We finally define the individual\footnote{Opposite of batch scale, those metrics evaluate a single sample from the generated dataset which opens the door to filtering by assigning a score per sample.} samples metrics: Realism \parencite{kynkaanniemi_improved_2019} and Rarity \parencite{han_rarity_2022} that will be used as baseline to filter the samples and compare with Generative Uncertainty on the \acs{FPR} metrics. Filtering metrics are used to create subsets $\boldsymbol\Phi_f \subseteq \boldsymbol\Phi_g$ that only keep the $N$ best samples with respect to that filtering metric.
 
@@ -55,7 +55,6 @@ Lower is better.
 Despite its widespread adoption, FID suffers from notable structural weaknesses \parencite{jayasumana_rethinking_2024} that will be described among other issues in \autoref{sub:problems_inception}.
 \end{tcolorbox}
 
-%hellooooooo can you see me%
 \subsection{k-NN Manifold Estimate}
 
 Before going on to define the Precision, Recall, Realism and Rarity metrics, we need to properly define what the k-NN Manifold Approximation is.
@@ -178,7 +177,7 @@ the generated sample to its center. Taking the maximum gives the deepest penetra
     \left\{ \frac{||\phi_r - \mathrm{NN}_k(\phi_r, \boldsymbol{\Phi}_r)||_2}{||\phi_g-\phi_r||_2}\right\}
 \end{align}
 
-The score gets bigger as the generated sample $\phi_g$ gets closer to $\mathcal{M}_k(\boldsymbol\Phi_r)$ until $R \ge 1$ and we have an equivalence with $f(\phi_g, \boldsymbol\Phi_r)$ \eqref{eq:f_helper_func_mk} where $f(\phi_g, \boldsymbol{\Phi}_r) = 1 \iff R(\phi_g, \boldsymbol{\Phi}_r) \ge 1$. The ratio $R$ can be seen as a continuous extension of the helper function $f$ \eqref{eq:f_helper_func_mk}.
+where $\boldsymbol\Phi_r^* \subseteq \boldsymbol\Phi_r$ is a filtered subset of real anchors defined below. The score gets bigger as the generated sample $\phi_g$ gets closer to $\mathcal{M}_k(\boldsymbol\Phi_r)$ until $R \ge 1$ and we have an equivalence with $f(\phi_g, \boldsymbol\Phi_r)$ \eqref{eq:f_helper_func_mk} where $f(\phi_g, \boldsymbol{\Phi}_r) = 1 \iff R(\phi_g, \boldsymbol{\Phi}_r) \ge 1$. The ratio $R$ can be seen as a continuous extension of the helper function $f$ \eqref{eq:f_helper_func_mk}.
 
 Lastly, one flaw of the k-NN approximation is to assign large hyperspheres to points in sparse regions (low sample density). 
 If a sample happens to fall in such a region, it can lead to a highly inaccurate score $R$. To fix this, instead of taking the $\max$ across all $\phi_r \in \boldsymbol{\Phi}_r$, we create a subset $\boldsymbol{\Phi}_r^*$ by taking $\boldsymbol{\Phi}_r$ and removing all $\phi_r$ that have a hypersphere of radius bigger than the median radius.
@@ -216,7 +215,7 @@ The Rarity score \cite{han_rarity_2022} was introduced to explicitly evaluate th
 %   \min_{\substack{\phi^{r}_{i} \in \Phi_{r} \\ \phi^{g}_{j} \in B_{k}(\phi^{r}_{i},\Phi_{r})}}
 %   \mathrm{NN}_{k}(\phi^{r}_{i},\Phi_{r}).
 % \end{align}
-For a generated sample $\phi_g^j$, we take every ball $B_k$ penetrated by $\phi_g^j$ and take the smallest ball radius as Rarity score. The bigger the radius, the less dense the region of the manifold which is what rarity tries to measure, additionally, if $\phi_g^j$ does not penetrate any ball, we consider it \acs{OOD}. Here is mathematical formulation:
+For a generated sample $\phi_g^j$, we take every ball $B_k$ penetrated by $\phi_g^j$ and take the smallest ball radius as Rarity score. The bigger the radius, the less dense the region of the manifold which is what rarity tries to measure, additionally, if $\phi_g^j$ does not penetrate any ball, we consider it \acs{OOD}. Here is the mathematical formulation:
 
 \begin{equation}
   \mathrm{Rarity}(\phi_{g}^j, \boldsymbol{\Phi}_r)=
@@ -293,7 +292,7 @@ The effect of sample size $|\boldsymbol\Phi|$ has been studied for both FID \par
     \label{fig:fpr_sample_size}
 \end{figure}
 
-\autoref{fig:fpr_sample_size} illustrates this phenomenon in \cite{kynkaanniemi_improved_2019}'s experimental setup. When looking into the range $[6000,\dots,12000]$ (to match \cite{jazbec_generative_2025}) FID is by far the most affected. Precision is also affected in a visible way, while Recall appears to be significantly more stable.
+\autoref{fig:fpr_sample_size} illustrates this phenomenon in \cite{kynkaanniemi_improved_2019}'s experimental setup. When looking into the range $[6000,\dots,12000]$ (to match \cite{jazbec_generative_2025}) FID is by far the most affected. Recall is also affected in a visible way, while Precision appears to be significantly more stable.
 
 One plausible explanation for this stems from the spatial differences between $\mathcal{M}_k(\boldsymbol\Phi_r)$ and $\mathcal{M}_k(\boldsymbol\Phi_g)$. 
 
@@ -302,7 +301,7 @@ Generative models generally cover a smaller fraction of the true data distributi
 
 In contrast, Precision evaluates whether generated images fall within the real manifold. Because models tend to generate samples in safe, well-represented regions, most generated points already reside deep inside the real distribution. Therefore, when the broad real manifold expands outward into empty space due to sparsity, it captures very few new generated points, resulting in a much flatter growth curve for Precision.
 
-In \cite{jazbec_generative_2025} however, we fix the size of the real dataset $|\boldsymbol{\Phi}_r| = 50{,}000$ and play with the size of the generated dataset $N = |\boldsymbol\Phi_f| \in [6000,\dots,12000]$. This asymmetry makes precision even less sensitive to $N$ because $\mathcal{M}_k(\boldsymbol\Phi_r)$ is fixed, only the number of generated points changes and most of them reside in the real distribution. Recall however grows even more from it because it measures how well the huge dataset $50{,}000$ points fit into the $\mathcal{M}_k(\boldsymbol\Phi_r)$ for which the hyperspheres keep growing around the clusters.
+In \cite{jazbec_generative_2025} however, we fix the size of the real dataset $|\boldsymbol{\Phi}_r| = 50{,}000$ and vary the size of the generated dataset $N = |\boldsymbol\Phi_f| \in [6000,\dots,12000]$. This asymmetry makes precision even less sensitive to $N$ because $\mathcal{M}_k(\boldsymbol\Phi_r)$ is fixed: only the number of generated points changes and most of them reside in the real distribution. Recall however grows even more from it because it measures how well the huge $50{,}000$-point dataset fits into $\mathcal{M}_k(\boldsymbol\Phi_g)$, whose hyperspheres keep growing around the clusters.
 
 \begin{tcolorbox}[colback=red!10!white,colframe=red!50!black,sharp corners]
 This will be confirmed in the reproduced \cite{jazbec_generative_2025} experiment (\autoref{ch:reproduce_adm}).
@@ -358,30 +357,30 @@ In light of those issues, we've decided to keep \cite{jazbec_generative_2025} ex
 Diffusion models are a class of deep generative models first introduced from the perspective of nonequilibrium thermodynamics \parencite{sohl2015thermo}, and later shown to produce image samples competitive with, or superior to, generative adversarial networks \parencite{ho_denoising_2020, dhariwal_diffusion_2021}. They learn to synthesize high-quality data by progressively transporting a simple prior distribution to a complex data distribution. This thesis works within the classical discrete-time formulation of this idea \parencite{ho_denoising_2020, song_denoising_2022}, which we build up over the following subsections. The framework also admits continuous-time and flow-based generalisations, which we summarise briefly in \autoref{subsec:bg_continuous}.
 
 \subsection{Formal Setup}
-Suppose we are given a training dataset $\mathcal{D} = \{x_n\}_{n=1}^N$ drawn from a true underlying data distribution $p_{data}(x)$.
+Suppose we are given a training dataset $\mathcal{D} = \{x_n\}_{n=1}^N$ drawn from a true underlying data distribution $p_{\mathrm{data}}(x)$.
 Depending on the domain, the data $x \in \mathcal{X}$ can take various mathematical forms. For example, in the case of natural images, $x$ is a high-dimensional tensor $x \in \mathbb{R}^{H \times W \times C}$. In this thesis we simply write $x \in \mathbb{R}^D$.
 
-The ultimate goal of generative modeling is to define a generator function, $g_{\theta} : \mathcal{Z} \rightarrow \mathcal{X}$ parameterized by model weights $\theta \in \mathbb{R}^{P}$, which maps an initial noise variable $z \in \mathcal{Z}$ drawn from a prior distribution $z \sim p_{init}(z)$ (typically a standard Gaussian $\mathcal{N}(0, I)$) to a new data sample $\hat{x}$. However, unlike other deep generative models such as variational autoencoders or generative adversarial networks that attempt to learn this complex mapping in a single leap, diffusion models decompose it into a progressive, step-by-step process \parencite{ho_denoising_2020}.
+The ultimate goal of generative modeling is to define a generator function, $g_{\theta} : \mathcal{Z} \rightarrow \mathcal{X}$ parameterized by model weights $\theta \in \mathbb{R}^{P}$, which maps an initial noise variable $z \in \mathcal{Z}$ drawn from a prior distribution $z \sim p_{\mathrm{init}}(z)$ (typically a standard Gaussian $\mathcal{N}(0, I)$) to a new data sample $\hat{x}$. However, unlike other deep generative models such as variational autoencoders or generative adversarial networks that attempt to learn this complex mapping in a single leap, diffusion models decompose it into a progressive, step-by-step process \parencite{ho_denoising_2020}.
 
-Conceptually, this process consists of two distinct phases. First, a forward process systematically destroys the structure of the data by adding random noise until it becomes pure noise (matching $p_{init}(z)$). Secondly, a reverse process trains a neural network to systematically remove that noise, effectively learning how to generate data from pure noise. This framework is versatile enough to be applied to varying tasks, 
-from a simple 2D synthetic dataset featuring 25 distinct Gaussian modes (e.g., the Toy experiment in \autoref{ch:reproduce_toy}), to high-dimensional datasets like ImageNet $128 \times 128$ using advanced architectures such as the \acs{ADM} (e.g., the \acs{ADM} experiment in \autoref{ch:reproduce_adm}) \cite{jazbec_generative_2025}.
+Conceptually, this process consists of two distinct phases. First, a forward process systematically destroys the structure of the data by adding random noise until it becomes pure noise (matching $p_{\mathrm{init}}(z)$). Secondly, a reverse process trains a neural network to systematically remove that noise, effectively learning how to generate data from pure noise. This framework is versatile enough to be applied to varying tasks, 
+from a simple 2D synthetic dataset featuring 25 distinct Gaussian modes (e.g., the Toy experiment in \autoref{ch:reproduce_toy}), to high-dimensional datasets like ImageNet $128 \times 128$ using advanced architectures such as the \acf{ADM} (e.g., the \acs{ADM} experiment in \autoref{ch:reproduce_adm}) \cite{jazbec_generative_2025}.
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/theory/diffusion_markov.png}
-    \caption{Illustration from \cite{ho_denoising_2020} of the forward and reverse Markov chains in the diffusion framework. The forward process (bottom, right to left) progressively corrupts an initial data sample $x_0 \sim p_{data}(x)$ with Gaussian noise over $T$ steps until it approaches an isotropic Gaussian distribution $x_T$. The reverse process (top, left to right), parameterized by a learned neural network denoiser $\epsilon_\theta$, iteratively removes the noise step by step to recover a sample from the target data distribution.}
+    \caption{Illustration from \cite{ho_denoising_2020} of the forward and reverse Markov chains in the diffusion framework. The forward process (bottom, right to left) progressively corrupts an initial data sample $x_0 \sim p_{\mathrm{data}}(x)$ with Gaussian noise over $T$ steps until it approaches an isotropic Gaussian distribution $x_T$. The reverse process (top, left to right), parameterized by a learned neural network denoiser $\epsilon_\theta$, iteratively removes the noise step by step to recover a sample from the target data distribution.}
     \label{fig:bg_diffusion_markov}
 \end{figure}
 
 \subsection{The Forward Process (Data Degradation)}
-The framework begins by formalizing the progressive degradation of the data. Following \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}, the forward (or noising) process is defined as a Markov chain that corrupts a data sample $x_{0} \sim p_{data}(x)$ into Gaussian noise over $T$ discrete steps (see \autoref{fig:bg_diffusion_markov}).
+The framework begins by formalizing the progressive degradation of the data. Following \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}, the forward (or noising) process is defined as a Markov chain that corrupts a data sample $x_{0} \sim p_{\mathrm{data}}(x)$ into Gaussian noise over $T$ discrete steps (see \autoref{fig:bg_diffusion_markov}).
 
-This degradation is controlled by a pre-defined variance schedule $\{\beta_{s}\}_{s=1}^{T}$ where $\beta_{s} \in (0,1)$ \parencite{ho_denoising_2020}. At each step, a small amount of Gaussian noise scaled by $\beta_t$ is injected into the data. Formally, denoting the data distribution by $q(x_0) := p_{data}(x)$, each forward step is a Gaussian transition
+This degradation is controlled by a pre-defined variance schedule $\{\beta_{s}\}_{s=1}^{T}$ where $\beta_{s} \in (0,1)$ \parencite{ho_denoising_2020}. At each step, a small amount of Gaussian noise scaled by $\beta_t$ is injected into the data. Formally, denoting the data distribution by $q(x_0) := p_{\mathrm{data}}(x)$, each forward step is a Gaussian transition
 \begin{equation}
 \label{eq:forward_kernel}
     q(x_t | x_{t-1}) = \mathcal{N}\big(x_t; \sqrt{1-\beta_t}\,x_{t-1},\, \beta_t I\big),
 \end{equation}
-so that the full forward process factorises as $q(x_{1:T}|x_0) = \prod_{t=1}^{T} q(x_t|x_{t-1})$ \parencite{ho_denoising_2020}. Here, $q$ denotes this fixed (non-learned) forward/noising process.\footnote{The symbol $q$ is used for two distinct objects in this thesis. Here it denotes the data distribution $q(x_0) := p_{data}(x)$ and the fixed forward (noising) process $q(x_t \mid x_{t-1})$. Later, in the Bayesian formulation of \autoref{sec:bayesian_model}, the same letter denotes the \acs{LA} posterior over the network weights, $q(\theta \mid \mathcal{D})$. The two are always distinguishable by their arguments: distributions over data states $x$ versus over weights $\theta$.}
+so that the full forward process factorises as $q(x_{1:T}|x_0) = \prod_{t=1}^{T} q(x_t|x_{t-1})$ \parencite{ho_denoising_2020}. Here, $q$ denotes this fixed (non-learned) forward/noising process.\footnote{The symbol $q$ is used for two distinct objects in this thesis. Here it denotes the data distribution $q(x_0) := p_{\mathrm{data}}(x)$ and the fixed forward (noising) process $q(x_t \mid x_{t-1})$. Later, in the Bayesian formulation of \autoref{sec:bayesian_model}, the same letter denotes the \acs{LA} posterior over the network weights, $q(\theta \mid \mathcal{D})$. The two are always distinguishable by their arguments: distributions over data states $x$ versus over weights $\theta$.}
 
 A key mathematical property of this forward process is that we do not need to iterate step-by-step to inspect the data partway through the chain. Writing $\alpha_t := 1 - \beta_t$ and $\overline{\alpha}_{t} := \prod_{s=1}^{t}\alpha_{s}$, \textcite{ho_denoising_2020} show that the marginal at any timestep $t$ is available in closed form,
 \begin{equation}
@@ -393,7 +392,7 @@ Equivalently, by recursively applying the Gaussian reparameterization trick and 
 \label{eq:forward_reparam}
     x_t = \sqrt{\overline{\alpha}_{t}}\,x_{0} + \sqrt{1-\overline{\alpha}_{t}}\,\epsilon, \qquad \epsilon \sim \mathcal{N}(0, I).
 \end{equation}
-The noise schedule $\beta_t$ is chosen such that $\overline{\alpha}_T \to 0$, ensuring that at the final step $T$ the original signal is essentially destroyed and $x_{T}$ approximates the isotropic Gaussian prior $p_{init}(z) = \mathcal{N}(z; 0, I)$ \parencite{ho_denoising_2020}.
+The noise schedule $\beta_t$ is chosen such that $\overline{\alpha}_T \to 0$, ensuring that at the final step $T$ the original signal is essentially destroyed and $x_{T}$ approximates the isotropic Gaussian prior $p_{\mathrm{init}}(z) = \mathcal{N}(z; 0, I)$ \parencite{ho_denoising_2020}.
 
 \subsection{The Training Objective (Learning to Reverse)}
 To generate new data, we must reverse this degradation. Formally, a diffusion model is a latent-variable model $p_\theta(x_0) = \int p_\theta(x_{0:T})\,dx_{1:T}$ whose joint, the \emph{reverse process}, is a Markov chain with learned Gaussian transitions \parencite{sohl2015thermo, ho_denoising_2020},
@@ -408,7 +407,7 @@ starting from the prior $p(x_T) = \mathcal{N}(0, I)$. \textcite{sohl2015thermo} 
 Reversing the forward process exactly is intractable, since the ideal reverse step $p_\theta(x_{t-1}|x_t)$ depends on the entire data distribution. Following \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}, the network is instead trained by minimizing the negative Variational Lower Bound (VLB) on the data log-likelihood. The contribution of \textcite{ho_denoising_2020} is to rewrite this bound as a sum of terms that can each be evaluated in closed form:
 \begin{multline}
 \label{eq:vlb_decomposition}
-    \mathcal{L}_{VLB} = \mathbb{E}_q\Big[\, \underbrace{D_{KL}\!\big(q(x_T|x_0)\,\|\,p(x_T)\big)}_{L_T} \\
+    \mathcal{L}_{\mathrm{VLB}} = \mathbb{E}_q\Big[\, \underbrace{D_{KL}\!\big(q(x_T|x_0)\,\|\,p(x_T)\big)}_{L_T} \\
     + \sum_{t=2}^{T} \underbrace{D_{KL}\!\big(q(x_{t-1}|x_t,x_0)\,\|\,p_\theta(x_{t-1}|x_t)\big)}_{L_{t-1}} \underbrace{-\, \log p_\theta(x_0|x_1)}_{L_0} \,\Big].
 \end{multline}
 The decomposition hinges on the \emph{forward-process posterior} $q(x_{t-1}|x_t, x_0)$, the true reverse step when conditioned on the clean image $x_0$, which is itself a tractable Gaussian (the full expansion via Bayes' rule is given in \autoref{app:diffusion_vlb}). Of the three groups of terms, the prior-matching term $L_T$ has no learnable parameters and is constant, while the reconstruction term $L_0$ handles only the final discretization step; the learning signal is therefore carried almost entirely by the $T-1$ middle terms $L_{t-1}$.
@@ -430,9 +429,9 @@ This objective coincides with a weighted form of denoising score matching: at th
 Finally, while the VLB prescribes the time-dependent weight $\beta_t^2 / \big(2\sigma_t^2\alpha_t(1-\overline{\alpha}_t)\big)$ in \autoref{eq:weighted_noise_loss}, \textcite{ho_denoising_2020} found that simply discarding it ($=1$) yields higher perceptual sample quality. Removing the time-dependent weight down-weights the easy, low-noise steps (small $t$) relative to the much harder denoising tasks at large $t$, and leads to the widely adopted simplified regression objective:
 \begin{equation}
 \label{eq:simple_loss}
-    \mathcal{L}_{simple}(\theta) = \mathbb{E}_{t,x_{0},\epsilon} \left[ ||\epsilon - \epsilon_{\theta}(\sqrt{\overline{\alpha}_{t}}x_{0} + \sqrt{1-\overline{\alpha}_{t}}\epsilon, t)||_{2}^{2} \right].
+    \mathcal{L}_{\mathrm{simple}}(\theta) = \mathbb{E}_{t,x_{0},\epsilon} \left[ ||\epsilon - \epsilon_{\theta}(\sqrt{\overline{\alpha}_{t}}x_{0} + \sqrt{1-\overline{\alpha}_{t}}\epsilon, t)||_{2}^{2} \right].
 \end{equation}
-Because $\mathcal{L}_{simple}$ discards the time-dependent weights, it is no longer the variational bound on the \emph{data} log-likelihood. It can, however, equivalently be read as the exact negative log-likelihood (up to a constant) of the Gaussian \emph{noise-prediction} regression task. This reinterpretation is central to this thesis: in \autoref{sec:bayesian_model} we build on it to ground the Bayesian treatment of the network weights on a well-defined likelihood, which is precisely what the generative-uncertainty framework of \textcite{jazbec_generative_2025} requires.
+Because $\mathcal{L}_{\mathrm{simple}}$ discards the time-dependent weights, it is no longer the variational bound on the \emph{data} log-likelihood. It can, however, equivalently be read as the exact negative log-likelihood (up to a constant) of the Gaussian \emph{noise-prediction} regression task. This reinterpretation is central to this thesis: in \autoref{sec:bayesian_model} we build on it to ground the Bayesian treatment of the network weights on a well-defined likelihood, which is precisely what the generative-uncertainty framework of \textcite{jazbec_generative_2025} requires.
 
 \subsection{Sampling}
 After the network $\epsilon_{\hat{\theta}}$ is trained (here $\hat{\theta}$ denotes the trained weights, i.e.\ the optimum of \autoref{eq:simple_loss}), the generative model synthesizes data by sequentially applying $T$ single-step transformations starting from pure noise $x_T \sim \mathcal{N}(0, I)$. \textcite{song_denoising_2022} show that both paradigms below can be written as a single generalized reverse step:
@@ -456,14 +455,14 @@ where $\omega \sim \mathcal{N}(0, I)$ and the variance $\sigma_t$ interpolates b
     DDIM generalizes the forward process to a \emph{non-Markovian} family in which each $x_t$ is conditioned on both $x_{t-1}$ and the clean sample $x_0$, while keeping the marginals $q(x_t|x_0)$ identical to those of DDPM \cite{song_denoising_2022}. Because the marginals are unchanged, the same pre-trained network $\epsilon_{\hat{\theta}}$ can be reused without retraining. Setting the stochastic variance term to zero ($\sigma_t = 0$ in \autoref{eq:bg_generalized_sampling}, which removes the noise term $\sigma_t \omega$) then makes the update a deterministic, discrete-time difference equation. Separately and this is what actually enables fast sampling because the training objective depends only on those marginals, the generative process can be run over a short increasing sub-sequence $\tau \subset \{1, \dots, T\}$ rather than all $T$ steps, accelerating generation by roughly an order of magnitude at a modest cost in quality \cite{song_denoising_2022}. This is the regime we use for the ImageNet \acs{ADM} experiments (\autoref{ch:reproduce_adm}).
 \end{itemize}
 
-Beyond efficiency, the \emph{determinism} of the generative path matters for this thesis. Fixing the sampling randomness inherently for DDIM, or by fixing the noise seed for DDPM turns the sampler into a deterministic map $g_{\theta}(z)$ from a fixed latent $z$ to an image, at fixed weights $\theta$. This is what later allows the generative-uncertainty framework to isolate the \emph{epistemic} uncertainty in the weights from the inherent stochasticity of sampling, so that any variation in the output can be attributed to the weights alone (\autoref{sec:bayesian_model}).
+Beyond efficiency, the \emph{determinism} of the generative path matters for this thesis. Fixing the sampling randomness — inherently for DDIM, or by fixing the noise seed for DDPM — turns the sampler into a deterministic map $g_{\theta}(z)$ from a fixed latent $z$ to an image, at fixed weights $\theta$. This is what later allows the generative-uncertainty framework to isolate the \emph{epistemic} uncertainty in the weights from the inherent stochasticity of sampling, so that any variation in the output can be attributed to the weights alone (\autoref{sec:bayesian_model}).
 
 \subsection{Broader Context and Continuous Frameworks}
 \label{subsec:bg_continuous}
 The discrete-time formulation used throughout this thesis is one instance of a broader family of generative models, which we mention only for context. \textcite{song_score-based_2021} show that diffusion can be cast in continuous time as a stochastic differential equation whose reverse process depends on the data only through the score $\nabla_x \log p_t(x)$, with DDPM recovered as a particular discretization. More radically, Continuous Normalizing Flows \parencite{chen_neural_2019} and Flow Matching \parencite{lipman_flow_2023} dispense with the noising/denoising chain altogether and instead learn a deterministic ordinary differential equation that transports the prior directly to the data distribution. We do not use these formulations in our experiments; we note them because the generative-uncertainty framework studied in this thesis is not specific to diffusion. In particular, \textcite{jazbec_generative_2025} apply it post-hoc to both diffusion and flow-matching models, so the methods developed in the following chapters carry over to the continuous and flow-based settings as well.
 
 \subsection{Towards Generative Uncertainty}
-The standard training formulation described above optimizes the objective $\mathcal{L}_{simple}$ to yield a single, deterministic point estimate for the network weights, $\hat{\theta}$. While this Maximum Likelihood/MSE approach effectively learns the data distribution and generates high-quality samples on average, it leaves the model fundamentally blind to its own \emph{epistemic uncertainty} its confidence in the learned weights given a finite amount of training data. Consequently, the model cannot distinguish between well-learned regions of the data manifold and out-of-distribution or ambiguous regions, leading to the occasional synthesis of low-quality or non-semantic samples exactly the failures the filtering experiments of this thesis aim to detect (\autoref{ch:reproduce_toy}, \autoref{ch:reproduce_adm}). To quantify this uncertainty, we must transition from a deterministic point estimate $\hat{\theta}$ to a probabilistic treatment of the network weights themselves. We develop the tools for this in the next two sections Bayesian inference over the weights (\autoref{sec:bg_bayesian}) and its tractable Laplace approximation (\autoref{sec:bg_laplace}) before assembling them into the generative-uncertainty model of \autoref{sec:bayesian_model}.
+The standard training formulation described above optimizes the objective $\mathcal{L}_{\mathrm{simple}}$ to yield a single, deterministic point estimate for the network weights, $\hat{\theta}$. While this Maximum Likelihood/MSE approach effectively learns the data distribution and generates high-quality samples on average, it leaves the model fundamentally blind to its own \emph{epistemic uncertainty} — its confidence in the learned weights given a finite amount of training data. Consequently, the model cannot distinguish between well-learned regions of the data manifold and out-of-distribution or ambiguous regions, leading to the occasional synthesis of low-quality or non-semantic samples — exactly the failures the filtering experiments of this thesis aim to detect (\autoref{ch:reproduce_toy}, \autoref{ch:reproduce_adm}). To quantify this uncertainty, we must transition from a deterministic point estimate $\hat{\theta}$ to a probabilistic treatment of the network weights themselves. We develop the tools for this in the next two sections: Bayesian inference over the weights (\autoref{sec:bg_bayesian}) and its tractable Laplace approximation (\autoref{sec:bg_laplace}), before assembling them into the generative-uncertainty model of \autoref{sec:bayesian_model}.
 
 
 
@@ -511,7 +510,7 @@ While many techniques such as Markov Chain Monte Carlo and Variational Inference
 \section{Laplace Approximation}
 \label{sec:bg_laplace}
 
-As established in the previous section, exact Bayesian inference requires integrating over the entire parameter space, a task that is strictly intractable for the high-dimensional weight spaces of modern deep neural networks. The Laplace approximation offers a mathematically elegant and computationally feasible post-hoc alternative. Rather than tracking the full posterior during training, the Laplace approximation constructs a local, multivariate Gaussian approximation of the true posterior distribution centered around the pre-trained point estimate Maximum a Posteriori (\acs{MAP}) denoted here\footnote{Later, we will also denote $\hat{\theta}$ as the pre-trained model's weights, which is a \acs{MLE} (Maximum Likelihood Estimation) instead} as $\hat{\theta}$.
+As established in the previous section, exact Bayesian inference requires integrating over the entire parameter space, a task that is strictly intractable for the high-dimensional weight spaces of modern deep neural networks. The Laplace approximation offers a mathematically elegant and computationally feasible post-hoc alternative. Rather than tracking the full posterior during training, the Laplace approximation constructs a local, multivariate Gaussian approximation of the true posterior distribution centered around the pre-trained Maximum a Posteriori (\acs{MAP}) point estimate, denoted here\footnote{Later, we will also denote $\hat{\theta}$ as the pre-trained model's weights, which is a \acs{MLE} (Maximum Likelihood Estimation) instead.} as $\hat{\theta}$.
 
 
 \subsection{Mathematical Formulation}
@@ -538,7 +537,7 @@ In practice, $p(\mathcal{D})$ is often intractable. Fortunately we don't need it
     &= -\nabla^2_\theta \log p(\mathcal{D}|\theta)|_{\theta=\hat\theta} -\nabla^2_\theta \log p(\theta)|_{\theta=\hat\theta} \label{eq:hessian_joint}
 \end{align}
 
-Because of the independence ($\indep$) of $p(\mathcal{D})$ from $\theta$, its gradient w.r.t. $\theta$ is $\boldsymbol{0}$. This implies that we actually only need to compute the hessian on the negative log of the joint distribution $p(\theta, \mathcal{D})$.
+Because of the independence ($\indep$) of $p(\mathcal{D})$ from $\theta$, its gradient w.r.t. $\theta$ is $\boldsymbol{0}$. This implies that we actually only need to compute the Hessian on the negative log of the joint distribution $p(\theta, \mathcal{D})$.
 
 \subsection{Pre-trained models use the MLE}
 \label{sub:la_trained_on_mle}
@@ -546,11 +545,11 @@ Because of the independence ($\indep$) of $p(\mathcal{D})$ from $\theta$, its gr
 The \acs{MAP} estimate is obtained by optimizing the posterior $p(\theta|\mathcal{D}) \propto p(\mathcal{D}|\theta)\cdot p(\theta)$. For the \acs{LA} to be defined properly, it needs to be centered on the \acs{MAP} estimate $\hat{\theta}$. Unfortunately, most diffusion models are trained to optimize the likelihood $p(\mathcal{D} | \theta)$ only, leading to a Maximum Likelihood Estimate $\hat\theta$ (\acs{MLE}) instead. This makes the above derivation mathematically false (the first order derivative is not zero).
 % on those pre-trained \acs{MLE} models weights.
 
-Some models however are trained with L2 regularization (e.g \texttt{AdamW} weight decay) which is equivalent to optimizing the joint probability $p(\mathcal{D}|\theta)\cdot p(\theta)$ where $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$ is an isotropic gaussian prior. In this case, we just have to find the correct value for $\gamma$ to match the regularization parameter used in training.
+Some models however are trained with L2 regularization (e.g \texttt{AdamW} weight decay) which is equivalent to optimizing the joint probability $p(\mathcal{D}|\theta)\cdot p(\theta)$ where $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$ is an isotropic Gaussian prior. In this case, it remains only to determine the value of $\gamma$ that matches the regularization parameter used in training.
 
 Unfortunately, the diffusion models we look at in this thesis don't use such regularization. We will have to assume \acs{MLE} $\simeq$ \acs{MAP} which is the same as assuming a uniform prior $p(\theta)$. This however would make the inverse Hessian computation unstable so we still use $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$ where we can see $\gamma$ as a post-hoc regularizer.
 
-We now explore how this $\gamma$ affects the \acs{LA} approximation. For that let's go back to the Laplace approximation of the log-posterior, this time expanded around the trained weights $\hat\theta = \theta_{MLE}$:
+We now explore how this $\gamma$ affects the \acs{LA} approximation. For that let's go back to the Laplace approximation of the log-posterior, this time expanded around the trained weights $\hat\theta = \theta_{\mathrm{MLE}}$:
 \begin{equation}
 \log p(\theta | \mathcal{D}) \approx \log p(\hat\theta|\mathcal{D}) + J^T(\theta - \hat\theta) - \frac{1}{2}(\theta - \hat\theta)^T H (\theta - \hat\theta)
 \end{equation}
@@ -577,7 +576,7 @@ J = \mathbf{0} - \gamma \hat\theta = - \gamma \hat\theta
 
 We are therefore trying to find a $\gamma$ that's negligible compared to the Hessian while still big enough to stabilize the inversion of the Hessian properly.
 
-Fortunately, the \acs{MLE} $\simeq$ \acs{MAP} approximation holds in practice because the massive scale of the data likelihood vastly dominates the prior term. Following
+In some cases, the \acs{MLE} $\simeq$ \acs{MAP} approximation holds because of the massive scale of the data likelihood compared to the prior term. Following
 the empirical validation in (\cite{jazbec_generative_2025}, Appendix D), we set
 $\gamma = 1.0$ for the \acs{ADM}. For the Toy model however we will explore the influence of $\gamma$ on a large range of values and document its effects in depth.
 % , which optimally balances computational stability with metric performance (FID, precision, and recall).
@@ -626,7 +625,7 @@ In this section, we describe the general pipeline (recipe) to compute generative
     \item First, we form a \acs{LA} posterior $q(\theta|\mathcal{D})$ centered around the base model $\hat\theta$. Then we sample M models $\boldsymbol{\theta} \sim q(\theta|\mathcal{D})$ from that posterior.
     \item We are now ready to generate images. We sample a single, fixed noise sample $z \sim \mathcal{N}(0,I)$ that we feed through the base model as well as the M sampled models (everyone gets the same noise sample). This gives us $M+1$ generated images that only differ by the model weights used. 
     \item We pass those $\mathrm{M}+1$ generated images through a semantic encoder (feature extractor) to get $\mathrm{M}+1$ vector embeddings.
-    \item We compute the uncertainty by fitting a gaussian distribution on those $\mathrm{M}+1$ vectors and computing its entropy.
+    \item We compute the uncertainty by fitting a Gaussian distribution on those $\mathrm{M}+1$ vectors and computing its entropy.
 \end{enumerate}
 
 \begin{tcolorbox}[colback=gray!10!white,colframe=gray!50!black,sharp corners]
@@ -658,19 +657,19 @@ Their methodology can be broken down into three core components:
 \begin{enumerate}
     \item \textbf{Empirical Parameter Posterior:} They approximate the posterior distribution over the model weights $q(\theta | \mathcal{D})$ using a Laplace approximation centered on the pre-trained base model weights, $\hat{\theta}$. 
     
-    % The covariance matrix $\Sigma_\theta$ relies on the Hessian of the standard unweighted diffusion loss, $\mathcal{L}_{simple}(\theta)$. 
+    % The covariance matrix $\Sigma_\theta$ relies on the Hessian of the standard unweighted diffusion loss, $\mathcal{L}_{\mathrm{simple}}(\theta)$. 
     % To complete the Bayesian formulation, they adopt an isotropic Gaussian prior $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$, which mathematically introduces a prior precision term $\gamma I$ into the inverse Hessian computation:
 
     To get the Hessian expression, we start from \autoref{eq:hessian_joint} and make the following assumptions:
     \begin{itemize}
-        \item The simple loss $\mathcal{L}_{simple}$ is equivalent to the negative log likelihood $-\log p(\mathcal{D}|\theta)$
-        \item The prior is an isotropic gaussian $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$. (For which the hessian is equal to $\gamma I$.)
+        \item The simple loss $\mathcal{L}_{\mathrm{simple}}$ is equivalent to the negative log likelihood $-\log p(\mathcal{D}|\theta)$
+        \item The prior is an isotropic Gaussian $p(\theta) = \mathcal{N}(\theta; 0, \gamma^{-1}I)$. (For which the Hessian is equal to $\gamma I$.)
     \end{itemize}
     And we get the following expression:
     
     \begin{align}
     H &= -\nabla^2_\theta \log p(\mathcal{D}|\theta)|_{\theta=\hat\theta} -\nabla^2_\theta \log p(\theta)|_{\theta=\hat\theta}\\
-    &= \nabla_{\theta}^{2}\mathcal{L}_{simple}(\theta)|_{\hat{\theta}} + \gamma I \label{eq:jazbec_laplace}
+    &= \nabla_{\theta}^{2}\mathcal{L}_{\mathrm{simple}}(\theta)|_{\hat{\theta}} + \gamma I \label{eq:jazbec_laplace}
     \end{align}
     Which gives us the \acs{LA} posterior approximation 
     \begin{align}
@@ -695,25 +694,25 @@ As acknowledged by \cite{jazbec_generative_2025}, this formulation is theoretica
 
 Properly applying the Laplace approximation to the posterior $p(\theta|\mathcal{D})$ requires the loss function to be equivalent to the negative log of the joint distribution $-\log p(\theta, \mathcal{D})$, which encompasses both the exact data log-likelihood and a prior term. The framework by \cite{jazbec_generative_2025} falls short on both fronts:
 
-The unweighted \acs{MSE} objective $\mathcal{L}_{simple}(\theta)$ is not equivalent to the negative log joint distribution $-\log p (\theta, \mathcal{D})$ nor is it equivalent to the negative log likelihood $-\log p(\mathcal{D}|\theta)$.
+The unweighted \acs{MSE} objective $\mathcal{L}_{\mathrm{simple}}(\theta)$ is not equivalent to the negative log joint distribution $-\log p (\theta, \mathcal{D})$ nor is it equivalent to the negative log likelihood $-\log p(\mathcal{D}|\theta)$.
 
 \begin{enumerate}
-    \item $\mathcal{L}_{simple} \not\equiv -\log p(\mathcal{D}|\theta)$. As we have seen in \autoref{sec:bg_diffusion}, $\mathcal{L}_{simple}$ was obtained by dropping the timestep dependent weights from the loss derived from the theory. $\mathcal{L}_{simple}$ can therefore not be used as a surrogate for the likelihood for the whole reverse diffusion process. \label{enum:l_simple}
-    \item $\mathcal{L}_{weighted} \not \equiv -\log p(\theta, \mathcal{D})$. As we have seen in \autoref{sec:bg_laplace}, The diffusion models we use here are trained to find the \acs{MLE}. So even if we use the proper weighted loss, we would only have it be a proper surrogate of the negative log likelihood $-\log p(\mathcal{D}|\theta)$ and not the full joint distribution. \label{enum:l_weighted}
+    \item $\mathcal{L}_{\mathrm{simple}} \not\equiv -\log p(\mathcal{D}|\theta)$. As we have seen in \autoref{sec:bg_diffusion}, $\mathcal{L}_{\mathrm{simple}}$ was obtained by dropping the timestep dependent weights from the loss derived from the theory. $\mathcal{L}_{\mathrm{simple}}$ can therefore not be used as a surrogate for the likelihood for the whole reverse diffusion process. \label{enum:l_simple}
+    \item $\mathcal{L}_{\mathrm{weighted}} \not \equiv -\log p(\theta, \mathcal{D})$. As we have seen in \autoref{sec:bg_laplace}, The diffusion models we use here are trained to find the \acs{MLE}. So even if we use the proper weighted loss, we would only have it be a proper surrogate of the negative log likelihood $-\log p(\mathcal{D}|\theta)$ and not the full joint distribution. \label{enum:l_weighted}
 \end{enumerate}
 
 \ref{enum:l_simple} will be addressed by changing our perspective from image data to intermediate noise prediction. However, \ref{enum:l_weighted} is a fundamental flaw of how the base model was trained, and the whole point of this method is to not retrain the model, we kept it as it is and considered $\gamma$ to be a regularization constant for the Hessian inversion.
 
 % \begin{itemize}
-%     \item \textbf{The Likelihood Discrepancy:} The unweighted \acs{MSE} objective $\mathcal{L}_{simple}(\theta)$ is not mathematically equivalent to the true log-likelihood of the image data $\mathcal{D}$. As acknowledged by the authors, obtaining the true data likelihood would require a specific, complex timestep-dependent weighting scheme.
+%     \item \textbf{The Likelihood Discrepancy:} The unweighted \acs{MSE} objective $\mathcal{L}_{\mathrm{simple}}(\theta)$ is not mathematically equivalent to the true log-likelihood of the image data $\mathcal{D}$. As acknowledged by the authors, obtaining the true data likelihood would require a specific, complex timestep-dependent weighting scheme.
 %     \item \textbf{The Prior Discrepancy (\acs{MLE} vs. \acs{MAP}):} Because standard diffusion training lacks explicit probabilistic prior regularization, the pre-trained weights $\hat{\theta}$ represent a Maximum Likelihood Estimate (\acs{MLE}), not the Maximum A Posteriori (\acs{MAP}) estimate required for a strict Laplace expansion. The prior term $\gamma I$ in Equation \ref{eq:jazbec_laplace} is not an intrinsic part of the training objective; it is a post-hoc surrogate added solely to stabilize the matrix inversion.
 % \end{itemize}
 
-% Consequently, while the covariance matrix $\Sigma_\theta$ effectively captures the curvature of the $\mathcal{L}_{simple}$ optimization landscape, it lacks a rigorous Bayesian interpretation relative to the original training data $\mathcal{D}$.
+% Consequently, while the covariance matrix $\Sigma_\theta$ effectively captures the curvature of the $\mathcal{L}_{\mathrm{simple}}$ optimization landscape, it lacks a rigorous Bayesian interpretation relative to the original training data $\mathcal{D}$.
 
 \subsection{An Alternative Model Using Exact Likelihood}
 
-We can resolve inconsistency \ref{enum:l_simple} by shifting our perspective on the likelihood. Rather than forcing $\mathcal{L}_{simple}$ to represent the log-likelihood of the image data $\mathcal{D}$, we frame it around the model's actual training task: predicting the added noise.
+We can resolve inconsistency \ref{enum:l_simple} by shifting our perspective on the likelihood. Rather than forcing $\mathcal{L}_{\mathrm{simple}}$ to represent the log-likelihood of the image data $\mathcal{D}$, we frame it around the model's actual training task: predicting the added noise.
 
 By defining an effective dataset of noise-prediction tasks $\mathcal{D}_{noise} = \{(x_{t,i}, t_i, \epsilon_i)\}_{i=1}^N$ (where at $t_i$, $x_{t,i}$ is the intermediate noisy image and $\epsilon_i$ the intermediate noise added to the image), we transform the formulation into an exact Bayesian regression problem. The likelihood of observing this whole effective dataset becomes:
 
@@ -737,26 +736,26 @@ Since we are optimizing $\theta$ when training, anything that's independent of $
 -\log p(\mathcal{D}_{noise} | \theta) = \sum_{i=1}^N -\log p(\epsilon_i | x_{t,i}, t_i, \theta) + C \label{eq:general_noise_likelihood}
 \end{align}
 
-For this \acs{NLL} to be equal to $\mathcal{L}_{simple}$, we define:
+For this \acs{NLL} to be equal to $\mathcal{L}_{\mathrm{simple}}$, we define:
 \begin{align}
-    p(\epsilon_i | x_{t,i}, t_i, \theta) &= \mathcal{N}\left(\epsilon_i; \epsilon_\theta(x_{t,i}, t_i), \alpha^2 I\right) \label{eq:noise_likelihood}
+    p(\epsilon_i | x_{t,i}, t_i, \theta) &= \mathcal{N}\left(\epsilon_i; \epsilon_\theta(x_{t,i}, t_i), s^2 I\right) \label{eq:noise_likelihood}
 \end{align}
 
-To fix inconsistency \ref{enum:l_simple}, we only need to show the equivalence between $\mathcal{L}_{simple}$ and the negative log likelihood $-\log p(\mathcal{D}_{noise}|\theta)$ rather than with the full negative log joint distribution $- \log p(\theta,\mathcal{D})$.
+To fix inconsistency \ref{enum:l_simple}, we only need to show the equivalence between $\mathcal{L}_{\mathrm{simple}}$ and the negative log likelihood $-\log p(\mathcal{D}_{noise}|\theta)$ rather than with the full negative log joint distribution $- \log p(\theta,\mathcal{D})$.
 
 % With this framing of the likelihood, we can indeed prove that 
 % \begin{align}
-% -\log p(\mathcal{D}_{noise}|\theta) = \mathcal{L}_{simple} + C
+% -\log p(\mathcal{D}_{noise}|\theta) = \mathcal{L}_{\mathrm{simple}} + C
 % \end{align}
 % See \autoref{app:l_simple_nll_equivalence} for the full proof.
 
 To show this, we start from \eqref{eq:noise_likelihood}:
 \begin{align}
-p(\epsilon_i | x_{t,i}, t_i, \theta) &= \frac{1}{\sqrt{(2\pi \alpha^2)^D}} \exp\left( - \frac{1}{2\alpha^2} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 \right) \nonumber \\
--\log p(\epsilon_i | x_{t,i}, t_i, \theta) &= \underbrace{-\log\left( \frac{1}{\sqrt{(2\pi \alpha^2)^D}} \right)}_{c \indep \theta} + \frac{1}{2\alpha^2} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 \nonumber
+p(\epsilon_i | x_{t,i}, t_i, \theta) &= \frac{1}{\sqrt{(2\pi s^2)^D}} \exp\left( - \frac{1}{2s^2} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 \right) \nonumber \\
+-\log p(\epsilon_i | x_{t,i}, t_i, \theta) &= \underbrace{-\log\left( \frac{1}{\sqrt{(2\pi s^2)^D}} \right)}_{c \indep \theta} + \frac{1}{2s^2} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 \nonumber
 \end{align}
 
-Grouping the part that's independent of $\theta$ in $c$ and setting $\alpha^2 = 1/2$ allows us to get the exact expression of a term from the  simplified loss (\acs{MSE}).
+Grouping the part that's independent of $\theta$ in $c$ and setting $s^2 = 1/2$ allows us to get the exact expression of a term from the simplified loss (\acs{MSE}).
 
 \begin{equation}
 -\log p (\epsilon_i | x_{t,i}, t_i, \theta) = ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 + c \label{eq:noise_loss_single_lik}
@@ -766,12 +765,12 @@ Which leads to the \acs{NLL}, by injecting \autoref{eq:noise_loss_single_lik} in
 \begin{align}
     - \log p(\mathcal{D}_{noise}|\theta) &= \sum^N_{i=1} - \log p(\epsilon_i|x_{t,i},t_i,\theta) + C\\
     &= \sum^N_{i=1} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 + C'\\
-    &= \mathcal{L}_{simple} + C'
+    &= \mathcal{L}_{\mathrm{simple}} + C'
 \end{align}
 
 Where $C,C'$ just include everything that's constant w.r.t. $\theta$. And we repaired the broken link between the negative log likelihood and the simplified loss.
 
-% Under the assumption of a uniform prior (effectively making \acs{MLE} $=$ \acs{MAP}), we can prove that the negative log-likelihood perfectly equates to the diffusion loss: $$-\log(p(\mathcal{D}_{noise}|\theta)p(\theta)) = \mathcal{L}_{simple} + C$$ (detailed in ). This shift ensures that the loss function evaluated for the Laplace approximation's Hessian is mathematically identical to the exact negative log-likelihood.
+% Under the assumption of a uniform prior (effectively making \acs{MLE} $=$ \acs{MAP}), we can prove that the negative log-likelihood perfectly equates to the diffusion loss: $$-\log(p(\mathcal{D}_{noise}|\theta)p(\theta)) = \mathcal{L}_{\mathrm{simple}} + C$$ (detailed in ). This shift ensures that the loss function evaluated for the Laplace approximation's Hessian is mathematically identical to the exact negative log-likelihood.
 
 % The updated parameter posterior and semantic predictive posterior become:
 % \begin{align}
@@ -785,7 +784,7 @@ The semantic predictive posterior remains the same as before:
         p(e | z, \mathcal{D}) &\simeq \int \mathcal{N}\left(e; S(\theta), \sigma^2 I\right) \mathcal{N}\left(\theta; \hat{\theta}, \Sigma_\theta\right) d\theta \label{eq:semantic_post_pred}
 \end{align}
 
-But now, $\Sigma_\theta = H^{-1}$ is theoretically grounded w.r.t. theoretical issue \ref{enum:l_simple}.
+But now, $\Sigma_\theta = H^{-1}$ is theoretically grounded w.r.t. theoretical issue \ref{enum:l_simple}. From here on we use $\mathcal{D}$ and $\mathcal{D}_{noise}$ interchangeably when conditioning the posterior, since the \acs{LA} is now grounded on the noise-prediction likelihood $p(\mathcal{D}_{noise}|\theta)$.
 
 % is properly derived from the Empirical Fisher Information matrix of the noise-prediction negative log-likelihood, evaluated at the \acs{MLE} $\hat{\theta}$.
 
@@ -814,7 +813,7 @@ Issue \ref{enum:multi-step-inference} however will be discussed in depth now.
 \cite{jazbec_generative_2025} was based on \cite{kou_bayesdiff_2024}. Two main contributions were made by \cite{jazbec_generative_2025}. The first one was adding a pre-trained (external) semantic encoder to evaluate uncertainty in its latent space rather than in pixel-space. The second was to only evaluate uncertainty on the last step of the reverse diffusion process (final image output). The second being a direct consequence of the first one because the external encoder is not made to process noisy images.
 
 While it is true that a proper Bayesian framework should track uncertainty across all reverse diffusion timesteps, We show much later in the thesis (\autoref{ch:using_internal_encoder}, using an internal encoder that understands intermediate noisy images in the reverse diffusion process) that the final generated image $x_0$ is the best timestep at which to extract the uncertainty if it's used to filter for visual quality. 
-So from a pure performance standpoint, it seems like we can get away by tracking uncertainty in the final timestep $t=0$ only.
+So from a pure performance standpoint, it seems we can rely on tracking uncertainty in the final timestep $t=0$ only.
 
 \cite{gupta_quantifying_2026} (FLARE) also argue that not tracking uncertainty across all reverse diffusion timesteps prevents us from properly separating epistemic uncertainty\footnote{Uncertainty in the model's knowledge} from aleatoric uncertainty\footnote{Uncertainty stemming from inherent noise in the reverse diffusion process and data}. We argue however that fixing a noise seed for both the starting noise $z$ and stochastic noise injection for DDPMs allows us to properly isolate epistemic uncertainty.
 
@@ -840,22 +839,22 @@ Clearly, this integral is intractable. A simple method to go around this limitat
 &=\frac{1}{\mathrm{M}+1} \sum^\mathrm{M}_{m=0} \mathcal{N}(e;S(\theta_m), \sigma^2 I)
 \end{align}
 
-With $\theta_m \sim q(\theta|\mathcal{D}_{noise})$. We then approximate this mixture of gaussian as a single gaussian $\mathcal{N}(e|\mu^*,\Sigma^*)$ using moment matching. We first define $e_m = S(\theta_m)$ and then compute the moments:
+With $\theta_m \sim q(\theta|\mathcal{D}_{noise})$. We then approximate this mixture of Gaussians as a single Gaussian $\mathcal{N}(e|\mu^*,\Sigma^*)$ using moment matching. We first define $e_m = S(\theta_m)$ and then compute the moments:
 \begin{itemize}
     \item First moment (matching the mean): $\mu^* = \frac{1}{\mathrm{M}+1} \sum^{\mathrm{M}}_{m=0} e_m$
-    \item Second moment (matching the covariance) (by the law of total variance): 
+    \item Second moment (matching the covariance) (by the law of total variance):
     \begin{align}
-    \Sigma^* &= \sigma^2 I + \frac{1}{\mathrm{M}+1} \sum^\mathrm{M}_{m=0} e_m^2 - (\mu^*)^2
+    \Sigma^* &= \sigma^2 I + \frac{1}{\mathrm{M}+1} \sum^\mathrm{M}_{m=0} e_m e_m^\top - \mu^*(\mu^*)^\top
     \end{align}
 \end{itemize}
 
 For efficiency reasons, we only consider the diagonal terms of $\Sigma^*$:
 \begin{align}
-    \Sigma^* &\simeq \sigma^2 I + \text{Diag}\left(\frac{1}{\mathrm{M}+1}\sum^\mathrm{M}_{m=0} e_m^2 - (\mu^*)^2 \right) =: \Sigma^{d*}
+    \Sigma^* &\simeq \sigma^2 I + \text{Diag}\left(\frac{1}{\mathrm{M}+1}\sum^\mathrm{M}_{m=0} e_m e_m^\top - \mu^*(\mu^*)^\top \right) =: \Sigma^{d*}
 \end{align}
 
 In the end, we get $p(e|z,\mathcal{D}) \simeq \mathcal{N}(e;\mu^*,\Sigma^{d*})$. The generative uncertainty is defined as the entropy of this distribution: $\mathcal{U}(x)$.
-The diagonal covariance matrix $\Sigma^{d*}$ is in $\mathbb{R}^{K\times K}$ we define $\sigma_k$ as its $k$-th diagonal element and the uncertainty is defined as:
+The diagonal covariance matrix $\Sigma^{d*}$ is in $\mathbb{R}^{K\times K}$; we define $\sigma_k^2$ as its $k$-th diagonal element (i.e.\ the variance of the $k$-th semantic dimension) and the uncertainty is defined as:
 
 \begin{equation}
 \mathcal{U}(x) = \frac{1}{2} \sum_{k=1}^K \ln(\sigma_{k}^2) + C
@@ -874,11 +873,9 @@ This matrix captures the geometric curvature of the loss landscape, where the in
 
 $H$ consists of two parts: the Hessian of the negative log likelihood (\acs{NLL}) and the Hessian of the negative log prior. 
 
-For a neural network with $P$ parameters, the exact hessian matrix of the \acs{NLL} $H_{NLL}\in \mathbb{R}^{P \times P}$ scales quadratically. For modern architectures with millions of weights, computing, storing, and later inverting the dense matrix $H$ is almost impossible.
+For a neural network with $P$ parameters, the exact Hessian matrix of the \acs{NLL} $H_{\mathrm{NLL}}\in \mathbb{R}^{P \times P}$ scales quadratically. For modern architectures with millions of weights, computing, storing, and later inverting the dense matrix $H$ is almost impossible.
 
 To make the computation tractable, \cite{jazbec_generative_2025} approximate the curvature using the empirical Fisher Information Matrix (\acs{FIM}).
-
-% which is then strictly constrained to be diagonal save even more compute.
 
 Mathematically, the empirical \acs{FIM} ($\hat{F}$) approximates the expected Hessian of the negative log likelihood using first-order gradients (which are vastly cheaper to compute than second-order derivatives). For $N$ data points, the empirical FIM is defined as:
 
@@ -886,10 +883,10 @@ Mathematically, the empirical \acs{FIM} ($\hat{F}$) approximates the expected He
 \hat{F} = \frac{1}{N} \sum_{i=1}^N \nabla_{\theta} \log p(\epsilon_i|x_{t,i}, t_i,\theta) \nabla_{\theta} \log p(\epsilon_i|x_{t,i}, t_i,\theta)^T 
 \end{align}
 
-This still gives us a $P\times P$ sized matrix. In \cite{jazbec_generative_2025} we further approximate the empirical FIM by only keeping the diagonal terms, giving us $P$ elements.
+This still gives us a $P\times P$ sized matrix. In \cite{jazbec_generative_2025} we further approximate the empirical \acs{FIM} by only keeping the diagonal terms, giving us $P$ elements.
 
 \begin{equation}
-\hat{F}_{pp} = \frac{1}{N} \sum_{i=1}^N \left( \frac{\partial \log p(\epsilon_i|x_{t,i},t_i, \theta)}{\partial \theta_i} \right)^2
+\hat{F}_{pp} = \frac{1}{N} \sum_{i=1}^N \left( \frac{\partial \log p(\epsilon_i|x_{t,i},t_i, \theta)}{\partial \theta_p} \right)^2
 \end{equation}
 
 In the end, we get 
@@ -900,9 +897,22 @@ H \simeq \mathrm{Diag}(\hat{F}) + \gamma I
 To further reduce $P$, instead of using a \acs{LA} over the full network, \cite{jazbec_generative_2025} restricts the approximation to the last layer of the network $=:$ Last Layer Laplace Approximation \acs{LLLA}.
 
 \begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
-\cite{gupta_quantifying_2026} heavily criticizes the \acs{LLLA} and suggests instead a random subnetwork Laplace approximation with a full covariance matrix. They argue that it's preferable to have a posterior approximation that samples less parameters than the \acs{LLLA} but across more layers and using a full covariance matrix to keep the interactions parameters have between them.
+\cite{gupta_quantifying_2026} heavily criticizes the \acs{LLLA} and suggests instead a random subnetwork Laplace approximation with a full covariance matrix. They argue that it is preferable to have a posterior approximation that samples fewer parameters than the \acs{LLLA} but spreads them across more layers and uses a full covariance matrix to preserve the interactions between parameters.
 
-In \autoref{ch:toy_exp_posterior}, we still show that despite the criticism, the \acs{LLLA} can be a very capable approximation to filter Out Of Distribution (\acs{OOD}) samples for a Toy model.
+In \autoref{ch:toy_exp_posterior}, we still show that despite the criticism, the \acs{LLLA} can be a very capable approximation to filter \acs{OOD} samples for a Toy model.
 \end{tcolorbox}
 
-Finally, to reduce the time needed to compute $\hat{F}$ even further, (\cite{jazbec_generative_2025}, Appendix D) use only \fbox{$\mathbf{1}\mathbf{\%}$} of the training data for the \acs{ADM} (the Toy Model will use the full training set).
+Finally, to reduce the time needed to compute $\hat{F}$ even further, (\cite{jazbec_generative_2025}, Appendix D) use only $1\%$ of the training data for the \acs{ADM} (the Toy Model will use the full training set).
+
+\subsection{Toy Model Posterior Approximation}
+\label{sub:gu_th_toy_model_posterior_approximation}
+
+In this thesis, chapters \ref{ch:reproduce_toy}, \ref{ch:quantifying_gu_filtering_toy}, \ref{ch:toy_exp_posterior} will use a much smaller diffusion \textit{Toy Model} that works with $x \in \mathbb{R}^2$. 
+
+The size of the Toy Model is small enough to allow the training of multiple independent models giving us a Deep Ensemble (\acs{DE}) that will be compared to an \acs{LLLA} Sampled Ensemble (as used for the \acs{ADM}).
+
+Additionally, because the Toy Model output space is only 2D, we don't need to use a semantic encoder to compute the uncertainty. 
+
+% In \autoref{ch:toy_exp_posterior}, we will show
+
+% this result will come in handy when we later discover that the semantic encoder can be used without the bayesian framework to compute uncertainty (\autoref{ch:semantic-encoder}).

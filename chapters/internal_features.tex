@@ -1,7 +1,7 @@
 \chapter{Using an Internal Encoder}
 \label{ch:using_internal_encoder}
 
-!!Restoring the original method with an internal encoder, !!mention that it was future work in the jazbec paper as well
+% !!Restoring the original method with an internal encoder, !!mention that it was future work in the jazbec paper as well
 
 \section{The Problem With External Encoders}
 
@@ -207,20 +207,15 @@ By using the internal encoder however, we manage to keep the FID lower during a 
 
 \paragraph{Direct Noise Injection}
 With this chapter, we've not actually fixed the Bayesian Framework, with \autoref{ch:semantic-encoder} we've seen that any encoder could be used with the Direct Noise Injection (\acs{DNI}) Method. It is highly likely that the internal encoder we've just derived in \autoref{ch:using_internal_encoder} can be used with \acs{DNI} and provide similar results as the Bayesian \acs{LLLA} posterior. 
-% The fact that $t=0$ seemed to be the best performing timestep to compute the uncertainty is even more encouraging as it implies that we can use already 
 Although doing so would completely depart from the Bayesian framework, it would still provide valuable uncertainty measurement that are directly linked to the model's training manifold. Testing an internal encoder with \acs{DNI} is left as future work.
 
 Still, Bayesian framework should not be discarded, as it is also likely that heavy approximations made the Bayesian uncertainty signal very weak. Improving the posterior approximation significantly with methods such as \cite{gegenfurtner_reducing_2026} to see if we can get a useful bayesian uncertainty signal back is also left as future work. 
 
-A deeper investigation of the relation between
+A deeper investigation of the relation between what \acs{DNI} actually measures (the encoder's local sensitivity to perturbations around the model's training manifold) and what the Bayesian posterior captures is also warranted. In particular, it remains unclear how this sensitivity signal relates to genuine weight-space uncertainty, both within a single basin (\acs{LLLA}) and across multiple basins (\acs{DE}), as studied on the Toy model in \autoref{ch:toy_exp_posterior}. Clarifying whether these quantities coincide or merely correlate would determine to what extent \acs{DNI} can stand in for the far more expensive Bayesian framework, and is left as future work.
 
 \paragraph{The Last Layer Perturbation}
 One important caveat that further discredits the heavily approximated Bayesian posterior's role in the uncertainty score: only the last layer of the \acs{ADM} model is perturbed by the
 \acs{LLLA}. The variance in intermediate features is therefore entirely a downstream consequence of that last-layer perturbation propagated through the forward pass, not a direct measure of uncertainty in those layers. Either this was enough to capture meaningful epistemic uncertainty or as previously suggested, the Bayesian model is over-approximated and acts more like a random noise generation similar to the \acs{DNI} method than a proper Bayesian uncertainty signal which could be enough to get meaningful results and further motivates trying \acs{DNI} on the internal encoder.
-% We've however observed that this signal was sufficient to capture a meaningful epistemic uncertainty signal. But it would be worthwhile to perturb the weights of the internal UNET layer selected for the encoder to strengthen the uncertainty signal and improve the method further.
-
-% \paragraph{Timestep $t=0$}
-% Lastly, we've tried timesteps in the range $[45,5]$ but the observations suggests that better results could be obtained at $t=0$.
 
 \paragraph{Feature Extraction}
 

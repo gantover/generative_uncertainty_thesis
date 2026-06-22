@@ -82,14 +82,14 @@ It is important to note here that we are first working with $\tilde{e}$ as a ran
 To understand why this input-driven entropy $\mathcal{U}(e)$ acts as an effective proxy for generative quality, we analyze the local dynamics of the encoder $c_\phi$. For a sufficiently small noise variance $\sigma_{noise}^2$, the deviation in the semantic space can be approximated using a first-order Taylor expansion around $x$ (we denote this approximation as $\mathcal{T}$):
 
 \begin{equation}
-\tilde{e} = c_\phi(\tilde{x})= c_\phi(x + \epsilon) \approx_{\mathcal{T}} c_\phi(x) + J_\phi(x)\epsilon
+\tilde{e} = c_\phi(\tilde{x})= c_\phi(x + \epsilon) \overset{\mathcal{T}}{\approx} c_\phi(x) + J_\phi(x)\epsilon
 \end{equation}
 
 where $J_\phi(x) \in \mathbb{R}^{K \times D}$ is the Jacobian matrix of the encoder. 
 
 The theoretical covariance of the resulting semantic embeddings $\Sigma_{\tilde{e}}$ is governed by the Jacobian:
 \begin{align}
-    \Sigma_{\tilde{e}} := \text{Cov}(\tilde{e}) &\simeq_{\mathcal{T}} \text{Cov}(\underbrace{c_{\phi}(x)}_{const} + J_{\phi}(x)\epsilon) \nonumber \\
+    \Sigma_{\tilde{e}} := \text{Cov}(\tilde{e}) &\overset{\mathcal{T}}{\simeq} \text{Cov}(\underbrace{c_{\phi}(x)}_{const} + J_{\phi}(x)\epsilon) \nonumber \\
     &= Cov(\underbrace{J_\phi(x)}_{const}\epsilon) \nonumber \\
     &= J_{\phi}(x)\text{Cov}(\epsilon)J_{\phi}(x)^{T} \nonumber \\
     &= J_\phi(x) (\sigma_{noise}^2 I_D) J_\phi(x)^T \nonumber \\
@@ -101,13 +101,13 @@ Because we are fitting a diagonal Gaussian, we are specifically interested in th
 Mathematically, the $i$-th diagonal element of this matrix is the squared $L_2$ norm of the $i$-th row of the Jacobian:
 
 \begin{equation}
-\sigma_{\tilde{e},i}^2 \simeq_{\mathcal{T}} \sigma_{noise}^2 \|\nabla c_{\phi, i}(x)\|_2^2
+\sigma_{\tilde{e},i}^2 \overset{\mathcal{T}}{\simeq} \sigma_{noise}^2 \|\nabla c_{\phi, i}(x)\|_2^2
 \end{equation}
 
 Substituting this into our entropy formulation reveals the direct theoretical link:
 
 \begin{equation}
-\mathcal{U}(x) \simeq_{\mathcal{T}} \frac{1}{2} \sum_{i=1}^K \ln\left( \sigma_{noise}^2 \|\nabla c_{\phi, i}(x)\|_2^2 \right) + C \label{eq:jacobian_uncertainty}
+\mathcal{U}(x) \overset{\mathcal{T}}{\simeq} \frac{1}{2} \sum_{i=1}^K \ln\left( \sigma_{noise}^2 \|\nabla c_{\phi, i}(x)\|_2^2 \right) + C \label{eq:jacobian_uncertainty}
 \end{equation}
 
 
@@ -135,11 +135,20 @@ Therefore, estimating entropy via post-hoc pixel perturbations successfully isol
 
 \section{Bayesian Model Over-Approximation}
 
+\paragraph{Bayesian Approximation Rendered to Noise}
 Before concluding on this experiment, we should be reminded that the Bayesian method used here and in \cite{jazbec_generative_2025} is heavily approximated, which certainly reduced the uncertainty signal strength coming out of the diffusion model, and it might have been to the point where that uncertainty signal essentially became noise that was fed through the encoder the same way \acs{DNI} does it. 
 
-It is possible that with a proper, more accurate Bayesian approximation to the like of what \cite{gegenfurtner_reducing_2026} did, would provide an uncertainty signal strong enough to go trough the encoder and still provide value. 
+The correlation plot and Pearson coefficient $r=0.532$ (\autoref{fig:la_role_corr}) give a nuanced picture, it shows that the uncertainty might not have become full random noise otherwise we could expect a stronger correlation. But since both \acs{DNI} and \acs{LLLA} perform almost identically on \acs{FPR} and \acs{HPS} metrics, the difference in scores observed on the correlation plot could also be attributed to uncertainty inherent to the calculation of ``generative uncertainty'' through an external encoder with a limited number of samples ($\mathrm{M}+1$). That per sample score uncertainty would be averaged out when taking the batch scale metrics.
 
-The correlation plot and Pearson coefficient $r=0.532$ (\autoref{fig:la_role_corr}) give a nuanced picture, it shows that the uncertainty might not have become full random noise otherwise we'd expect a stronger correlation. But since both \acs{DNI} and \acs{LLLA} perform almost identically on \acs{FPR} and \acs{HPS} metrics, the difference in scores observed on the correlation plot could also be attributed to uncertainty inherent to the calculation of ``generative uncertainty'' through an external encoder with a limited number of samples ($\mathrm{M}+1$). That per sample score uncertainty would be averaged out when taking the batch scale metrics.
+\paragraph{Bayesian Uncertainty is Valuable}
+It is possible that with a proper, more accurate Bayesian approximation to the like of what \cite{gegenfurtner_reducing_2026} did, would provide an uncertainty signal strong enough to go trough the encoder and still provide value.
+
+But we might not even need a more accurate Bayesian approximation. In the context of a Toy model that outputs in 2D space and therefore doesn't need a semantic encoder, we show in \autoref{ch:toy_exp_posterior} that a simple \acs{LLLA} can already provide a very strong uncertainty signal that is enough to filter out OOD samples. The only difference between the \acs{ADM} \acs{LLLA} and the \textit{Toy Model} \acs{LLLA} for the posterior is that the former uses only 1\% of the training data to compute the approximation while the latter uses the full training set (\autoref{sub:gu_th_toy_model_posterior_approximation}). The problem with the current \acs{ADM} \acs{LLLA} could be that 1\% is not enough or that the \acs{LLLA} is too simple for the complexity of the \acs{ADM} compared to the significantly simpler \textit{Toy Model} or other reasons that all need further investigation in future work.
+
+% But in the context of the \textit{Toy Model} (\autoref{ch:toy_exp_posterior}) we prove that the \acs{LLLA} by itself (without a semantic encoder) is highly effective at filtering out \acs{OOD} samples provided we done a proper regularization and scaling of that posterior approximation.
+
+% The only difference between the \acs{ADM} \acs{LLLA} and \textit{Toy Model} \acs{LLLA} is the 
+
 
 \section{Conclusion}
 
@@ -147,5 +156,5 @@ We've shown that we could get very close to the results of \cite{jazbec_generati
 
 We can however no longer talk about Generative Uncertainty with a method that bypasses the whole Bayesian framework and does not care about the generative model itself. 
 
-Wether the heavily approximated Bayesian framework provides any value or not compared to simply using random noise, using an external encoder trained on a different dataset than the one used to train the actual diffusion model, does not make sense when we want to properly isolate the uncertainty of the diffusion model itself. 
-the ADM model needs an alternative to the external semantic encoder to allow for an uncontaminated measurement of its uncertainty and we explore this in the next chapter (\autoref{ch:using_internal_encoder})
+Whether the heavily approximated Bayesian framework provides any value or not compared to simply using random noise, using an external encoder trained on a different dataset than the one used to train the actual diffusion model, does not make sense when we want to properly isolate the uncertainty of the diffusion model itself. 
+the \acs{ADM} needs an alternative to the external semantic encoder to allow for an uncontaminated measurement of its uncertainty and we explore this in the next chapter (\autoref{ch:using_internal_encoder}).
