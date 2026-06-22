@@ -55,7 +55,7 @@ Lower is better.
 Despite its widespread adoption, FID suffers from notable structural weaknesses \parencite{jayasumana_rethinking_2024} that will be described among other issues in \autoref{sub:problems_inception}.
 \end{tcolorbox}
 
-
+%hellooooooo can you see me%
 \subsection{k-NN Manifold Estimate}
 
 Before going on to define the Precision, Recall, Realism and Rarity metrics, we need to properly define what the k-NN Manifold Approximation is.
@@ -352,20 +352,19 @@ This motivates the need for an evaluation metric that can be computed \textit{pe
 
 In light of those issues, we've decided to keep \cite{jazbec_generative_2025} experiments setup as it is and instead add a brand new metric that will serve as an ``oracle'' of judging if an image is realistic or not. For this, we will use a pretrained model that outputs a human preference score (\autoref{ch:hpsv3}).
 
-\section{Diffusion Models (WIP)}
+\section{Diffusion Models}
 \label{sec:bg_diffusion}
 
-Diffusion models are deep generative models that learn to synthesize high-quality data by progressively transporting an initial, simple prior distribution to a complex data distribution. While they can theoretically map between arbitrary distributions, this thesis focuses on a classical discrete-time diffusion framework, reversing a progressive Gaussian noise process over $T$ steps.
+Diffusion models are a class of deep generative models first introduced from the perspective of nonequilibrium thermodynamics \parencite{sohl2015thermo}, and later shown to produce image samples competitive with, or superior to, generative adversarial networks \parencite{ho_denoising_2020, dhariwal_diffusion_2021}. They learn to synthesize high-quality data by progressively transporting a simple prior distribution to a complex data distribution. This thesis works within the classical discrete-time formulation of this idea \parencite{ho_denoising_2020, song_denoising_2022}, which we build up over the following subsections. The framework also admits continuous-time and flow-based generalisations, which we summarise briefly in \autoref{subsec:bg_continuous}.
 
-\subsection{Formal Setup (WIP)}
+\subsection{Formal Setup}
 Suppose we are given a training dataset $\mathcal{D} = \{x_n\}_{n=1}^N$ drawn from a true underlying data distribution $p_{data}(x)$.
-% \footnote{Note that we use $q$ to denote both the fixed true data distribution and the fixed forward noising process. We later use $q$ for the \acs{LA}. To differentiate them, we look at the arguments they take}.
 Depending on the domain, the data $x \in \mathcal{X}$ can take various mathematical forms. For example, in the case of natural images, $x$ is a high-dimensional tensor $x \in \mathbb{R}^{H \times W \times C}$. In this thesis we simply write $x \in \mathbb{R}^D$.
 
-The ultimate goal of generative modeling is to define a generator function, $g_{\theta} : \mathcal{Z} \rightarrow \mathcal{X}$ parameterized by model weights $\theta \in \mathbb{R}^{P}$, which maps an initial noise variable $z \in \mathcal{Z}$ drawn from a prior distribution $z \sim p_{init}(z)$ (typically a standard Gaussian $\mathcal{N}(0, I)$) to a new data sample $\hat{x}$. However, unlike other generative models (VAEs, GANs) that attempt to learn this complex mapping in a single leap, diffusion models decompose the mapping into a progressive, step-by-step process \parencite{ho_denoising_2020}. 
+The ultimate goal of generative modeling is to define a generator function, $g_{\theta} : \mathcal{Z} \rightarrow \mathcal{X}$ parameterized by model weights $\theta \in \mathbb{R}^{P}$, which maps an initial noise variable $z \in \mathcal{Z}$ drawn from a prior distribution $z \sim p_{init}(z)$ (typically a standard Gaussian $\mathcal{N}(0, I)$) to a new data sample $\hat{x}$. However, unlike other deep generative models such as variational autoencoders or generative adversarial networks that attempt to learn this complex mapping in a single leap, diffusion models decompose it into a progressive, step-by-step process \parencite{ho_denoising_2020}.
 
-Conceptually, this process consists of two distinct phases. First, a forward process systematically destroys the structure of the data by adding random noise until it becomes pure static (matching $p_{init}(z)$). Secondly, a reverse process trains a neural network to systematically remove that noise, effectively learning how to generate data from pure noise. This framework is versatile enough to be applied to varying tasks, 
-from a simple 2D synthetic dataset featuring 25 distinct Gaussian modes (e.g., the Toy experiment in \autoref{ch:reproduce_toy}), to high-dimensional datasets like ImageNet $128 \times 128$ using advanced architectures such as the Ablated Diffusion Model \acs{ADM} (e.g., the ADM experiment in \autoref{ch:reproduce_adm}) \cite{jazbec_generative_2025}. 
+Conceptually, this process consists of two distinct phases. First, a forward process systematically destroys the structure of the data by adding random noise until it becomes pure noise (matching $p_{init}(z)$). Secondly, a reverse process trains a neural network to systematically remove that noise, effectively learning how to generate data from pure noise. This framework is versatile enough to be applied to varying tasks, 
+from a simple 2D synthetic dataset featuring 25 distinct Gaussian modes (e.g., the Toy experiment in \autoref{ch:reproduce_toy}), to high-dimensional datasets like ImageNet $128 \times 128$ using advanced architectures such as the \acs{ADM} (e.g., the \acs{ADM} experiment in \autoref{ch:reproduce_adm}) \cite{jazbec_generative_2025}.
 
 \begin{figure}[!htbp]
     \centering
@@ -374,51 +373,97 @@ from a simple 2D synthetic dataset featuring 25 distinct Gaussian modes (e.g., t
     \label{fig:bg_diffusion_markov}
 \end{figure}
 
-\subsection{The Forward Process (Data Degradation) (WIP)}
-The framework begins by formalizing the progressive degradation of the data. The forward (or noising) process is defined as a Markov chain that corrupts a data sample $x_{0} \sim p_{data}(x)$ into Gaussian noise over $T$ discrete steps (see \autoref{fig:bg_diffusion_markov}). 
+\subsection{The Forward Process (Data Degradation)}
+The framework begins by formalizing the progressive degradation of the data. Following \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}, the forward (or noising) process is defined as a Markov chain that corrupts a data sample $x_{0} \sim p_{data}(x)$ into Gaussian noise over $T$ discrete steps (see \autoref{fig:bg_diffusion_markov}).
 
-This degradation is controlled by a pre-defined variance schedule $\{\beta_{s}\}_{s=1}^{T}$ where $\beta_{s} \in (0,1)$ \parencite{ho_denoising_2020}. At each step, a small amount of Gaussian noise scaled by $\beta_t$ is injected into the data. 
-
-A key mathematical property of this forward process is that we do not actually need to iterate step-by-step to see what the data looks like halfway through the process. By recursively applying the reparameterization trick of Gaussian distributions (the full step-by-step mathematical derivation is provided in \autoref{app:diffusion_forward}), we can merge the independent noise components at each step. This allows us to sample the noisy data $x_{t}$ at any arbitrary timestep $t$ directly from the original uncorrupted image $x_0$:
+This degradation is controlled by a pre-defined variance schedule $\{\beta_{s}\}_{s=1}^{T}$ where $\beta_{s} \in (0,1)$ \parencite{ho_denoising_2020}. At each step, a small amount of Gaussian noise scaled by $\beta_t$ is injected into the data. Formally, denoting the data distribution by $q(x_0) := p_{data}(x)$, each forward step is a Gaussian transition
 \begin{equation}
-    x_t = \sqrt{\overline{\alpha}_{t}}x_{0} + \sqrt{1-\overline{\alpha}_{t}}\epsilon,
+\label{eq:forward_kernel}
+    q(x_t | x_{t-1}) = \mathcal{N}\big(x_t; \sqrt{1-\beta_t}\,x_{t-1},\, \beta_t I\big),
 \end{equation}
-where $\alpha_t = 1 - \beta_t$ and $\overline{\alpha}_{t} = \prod_{s=1}^{t}\alpha_{s}$. Here, $\epsilon \sim \mathcal{N}(0, I)$ is the accumulated standard Gaussian noise. The noise schedule $\beta_t$ is specifically chosen such that $\overline{\alpha}_T \to 0$, ensuring that at the final step $T$, the original signal is completely destroyed and $x_{T}$ approximates the isotropic Gaussian $p_{init}(z) = \mathcal{N}(z; 0, I)$.
+so that the full forward process factorises as $q(x_{1:T}|x_0) = \prod_{t=1}^{T} q(x_t|x_{t-1})$ \parencite{ho_denoising_2020}. Here, $q$ denotes this fixed (non-learned) forward/noising process.\footnote{The symbol $q$ is used for two distinct objects in this thesis. Here it denotes the data distribution $q(x_0) := p_{data}(x)$ and the fixed forward (noising) process $q(x_t \mid x_{t-1})$. Later, in the Bayesian formulation of \autoref{sec:bayesian_model}, the same letter denotes the \acs{LA} posterior over the network weights, $q(\theta \mid \mathcal{D})$. The two are always distinguishable by their arguments: distributions over data states $x$ versus over weights $\theta$.}
 
-\subsection{The Training Objective (Learning to Reverse) (WIP)}
-To generate new data, we must reverse this degradation. However, reversing the entire forward process directly is computationally intractable. Instead, we aim to learn a parameterized neural network to approximate the single-step reverse distribution \parencite{sohl2015thermo}.
+A key mathematical property of this forward process is that we do not need to iterate step-by-step to inspect the data partway through the chain. Writing $\alpha_t := 1 - \beta_t$ and $\overline{\alpha}_{t} := \prod_{s=1}^{t}\alpha_{s}$, \textcite{ho_denoising_2020} show that the marginal at any timestep $t$ is available in closed form,
+\begin{equation}
+\label{eq:forward_marginal}
+    q(x_t | x_0) = \mathcal{N}\big(x_t; \sqrt{\overline{\alpha}_t}\,x_0,\, (1-\overline{\alpha}_t) I\big).
+\end{equation}
+Equivalently, by recursively applying the Gaussian reparameterization trick and merging the independent noise increments (the full step-by-step derivation is given in \autoref{app:diffusion_forward}), we can sample $x_t$ directly from $x_0$:
+\begin{equation}
+\label{eq:forward_reparam}
+    x_t = \sqrt{\overline{\alpha}_{t}}\,x_{0} + \sqrt{1-\overline{\alpha}_{t}}\,\epsilon, \qquad \epsilon \sim \mathcal{N}(0, I).
+\end{equation}
+The noise schedule $\beta_t$ is chosen such that $\overline{\alpha}_T \to 0$, ensuring that at the final step $T$ the original signal is essentially destroyed and $x_{T}$ approximates the isotropic Gaussian prior $p_{init}(z) = \mathcal{N}(z; 0, I)$ \parencite{ho_denoising_2020}.
 
-Rigorously, optimizing this network requires minimizing the negative Variational Lower Bound (VLB) on the data log-likelihood. (For readers interested in the exact statistical formulations, including the expansion of joint distributions via Bayes' rule and the decomposition into Kullback-Leibler divergences, we provide an exhaustive derivation in \autoref{app:diffusion_vlb}). 
+\subsection{The Training Objective (Learning to Reverse)}
+To generate new data, we must reverse this degradation. Formally, a diffusion model is a latent-variable model $p_\theta(x_0) = \int p_\theta(x_{0:T})\,dx_{1:T}$ whose joint, the \emph{reverse process}, is a Markov chain with learned Gaussian transitions \parencite{sohl2015thermo, ho_denoising_2020},
+\begin{equation}
+\label{eq:reverse_process}
+    p_\theta(x_{0:T}) = p(x_T) \prod_{t=1}^{T} p_\theta(x_{t-1} | x_t),
+    \qquad
+    p_\theta(x_{t-1} | x_t) = \mathcal{N}\big(x_{t-1}; \mu_\theta(x_t, t),\, \Sigma_t\big),
+\end{equation}
+starting from the prior $p(x_T) = \mathcal{N}(0, I)$. \textcite{sohl2015thermo} show that, when $\beta_t$ is small, the reverse transitions can be modelled with the same Gaussian functional form as the forward process. Following \textcite{ho_denoising_2020}, the covariance $\Sigma_t = \sigma_t^2 I$ is fixed to a time-dependent constant, so that only the mean $\mu_\theta(x_t, t)$ is learned.
 
-In practice, however, the target reduces to a surprisingly elegant concept. Because the forward process (the noise injected at step $t$) is entirely known, the network does not need to guess the exact pixels of the intermediate images. Instead, we introduce a neural network $\epsilon_\theta(x_t, t)$ designed to explicitly predict the specific noise $\epsilon$ that was added at timestep $t$ \parencite{ho_denoising_2020}. 
+Reversing the forward process exactly is intractable, since the ideal reverse step $p_\theta(x_{t-1}|x_t)$ depends on the entire data distribution. Following \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}, the network is instead trained by minimizing the negative Variational Lower Bound (VLB) on the data log-likelihood. The contribution of \textcite{ho_denoising_2020} is to rewrite this bound as a sum of terms that can each be evaluated in closed form:
+\begin{multline}
+\label{eq:vlb_decomposition}
+    \mathcal{L}_{VLB} = \mathbb{E}_q\Big[\, \underbrace{D_{KL}\!\big(q(x_T|x_0)\,\|\,p(x_T)\big)}_{L_T} \\
+    + \sum_{t=2}^{T} \underbrace{D_{KL}\!\big(q(x_{t-1}|x_t,x_0)\,\|\,p_\theta(x_{t-1}|x_t)\big)}_{L_{t-1}} \underbrace{-\, \log p_\theta(x_0|x_1)}_{L_0} \,\Big].
+\end{multline}
+The decomposition hinges on the \emph{forward-process posterior} $q(x_{t-1}|x_t, x_0)$, the true reverse step when conditioned on the clean image $x_0$, which is itself a tractable Gaussian (the full expansion via Bayes' rule is given in \autoref{app:diffusion_vlb}). Of the three groups of terms, the prior-matching term $L_T$ has no learnable parameters and is constant, while the reconstruction term $L_0$ handles only the final discretization step; the learning signal is therefore carried almost entirely by the $T-1$ middle terms $L_{t-1}$.
 
-Furthermore, while the strict mathematical VLB applies complex, time-dependent scaling weights to the training objective, it has been demonstrated that discarding these weights yields higher perceptual sample quality. By removing the weights, the objective naturally down-weights trivial noise-removal steps, allowing the network to focus its representational capacity on the much more difficult denoising tasks at larger $t$. This leads to the widely adopted, simplified regression objective:
+Each $L_{t-1}$ is a KL divergence between two Gaussians, the fixed posterior $q(x_{t-1}|x_t,x_0)$ and the learned reverse step $p_\theta(x_{t-1}|x_t)$, so it collapses in closed form to a squared error between their means \parencite{ho_denoising_2020},
+\begin{equation}
+\label{eq:mean_mse}
+    L_{t-1} = \mathbb{E}_q\Big[\, \tfrac{1}{2\sigma_t^2}\,\|\tilde{\mu}_t(x_t,x_0) - \mu_\theta(x_t,t)\|_2^2 \,\Big] + C,
+\end{equation}
+where $\tilde{\mu}_t$ is the known posterior mean and $C$ collects $\theta$-independent constants. The network's task thus reduces to predicting $\tilde{\mu}_t$.
+
+The crucial simplification of \textcite{ho_denoising_2020} comes from how this mean is parameterized. Because the forward noise is known, $\tilde{\mu}_t$ can be written entirely in terms of $x_t$ and the noise $\epsilon$ that produced it through \autoref{eq:forward_reparam}. Rather than predicting the mean directly, \textcite{ho_denoising_2020} therefore reparameterize the network to predict that injected noise, introducing a noise-prediction network $\epsilon_\theta(x_t, t)$ (the algebra is carried out in \autoref{app:diffusion_kl}). Substituting this choice into \autoref{eq:mean_mse} turns each $L_{t-1}$ into a weighted noise-regression loss, with $x_t = \sqrt{\overline{\alpha}_t}\,x_0 + \sqrt{1-\overline{\alpha}_t}\,\epsilon$ as in \autoref{eq:forward_reparam},
+\begin{equation}
+\label{eq:weighted_noise_loss}
+    L_{t-1} - C = \mathbb{E}_{x_0,\epsilon}\left[\, \frac{\beta_t^2}{2\sigma_t^2\,\alpha_t (1-\overline{\alpha}_t)}\,\|\epsilon - \epsilon_\theta(x_t, t)\|_2^2 \,\right].
+\end{equation}
+This objective coincides with a weighted form of denoising score matching: at the optimum, $\epsilon_\theta(x_t,t)$ is proportional to the score $\nabla_{x_t} \log q(x_t)$ of the noised data distribution \parencite{ho_denoising_2020, song_score-based_2021}.
+
+Finally, while the VLB prescribes the time-dependent weight $\beta_t^2 / \big(2\sigma_t^2\alpha_t(1-\overline{\alpha}_t)\big)$ in \autoref{eq:weighted_noise_loss}, \textcite{ho_denoising_2020} found that simply discarding it ($=1$) yields higher perceptual sample quality. Removing the time-dependent weight down-weights the easy, low-noise steps (small $t$) relative to the much harder denoising tasks at large $t$, and leads to the widely adopted simplified regression objective:
 \begin{equation}
 \label{eq:simple_loss}
     \mathcal{L}_{simple}(\theta) = \mathbb{E}_{t,x_{0},\epsilon} \left[ ||\epsilon - \epsilon_{\theta}(\sqrt{\overline{\alpha}_{t}}x_{0} + \sqrt{1-\overline{\alpha}_{t}}\epsilon, t)||_{2}^{2} \right].
 \end{equation}
-While $\mathcal{L}_{simple}$ is no longer strictly equivalent to the true VLB, it acts as a highly effective surrogate that actively prioritizes perceptual quality over exact likelihood maximization.
+Because $\mathcal{L}_{simple}$ discards the time-dependent weights, it is no longer the variational bound on the \emph{data} log-likelihood. It can, however, equivalently be read as the exact negative log-likelihood (up to a constant) of the Gaussian \emph{noise-prediction} regression task. This reinterpretation is central to this thesis: in \autoref{sec:bayesian_model} we build on it to ground the Bayesian treatment of the network weights on a well-defined likelihood, which is precisely what the generative-uncertainty framework of \textcite{jazbec_generative_2025} requires.
 
-We will see in \autoref{sec:bayesian_model} how the use of $\mathcal{L}_{simple}$ affected the \cite{jazbec_generative_2025} generative uncertainty framework.
-
-\subsection{Sampling and Model Architectures (WIP)}
-After the network $\epsilon_{\hat{\theta}}$ is trained, the generative model synthesizes data by sequentially applying $T$ single-step transformations starting from pure noise $x_T \sim \mathcal{N}(0, I)$. Two primary paradigms govern this generation phase:
+\subsection{Sampling}
+After the network $\epsilon_{\hat{\theta}}$ is trained (here $\hat{\theta}$ denotes the trained weights, i.e.\ the optimum of \autoref{eq:simple_loss}), the generative model synthesizes data by sequentially applying $T$ single-step transformations starting from pure noise $x_T \sim \mathcal{N}(0, I)$. \textcite{song_denoising_2022} show that both paradigms below can be written as a single generalized reverse step:
+\begin{equation}
+\label{eq:bg_generalized_sampling}
+\begin{aligned}
+    x_{t-1} = \sqrt{\overline{\alpha}_{t-1}} \underbrace{\left( \frac{x_t - \sqrt{1-\overline{\alpha}_t}\,\epsilon_{\hat{\theta}}(x_t, t)}{\sqrt{\overline{\alpha}_t}} \right)}_{\text{predicted } x_0}
+    &+ \underbrace{\sqrt{1 - \overline{\alpha}_{t-1} - \sigma_t^2}\; \epsilon_{\hat{\theta}}(x_t, t)}_{\text{direction pointing to } x_t} \\
+    &+ \underbrace{\sigma_t \omega}_{\text{random noise}},
+\end{aligned}
+\end{equation}
+where $\omega \sim \mathcal{N}(0, I)$ and the variance $\sigma_t$ interpolates between the two regimes (the full derivation is provided in \autoref{app:diffusion_sampling}). Two primary paradigms govern this generation phase:
 
 \begin{itemize}
     \item \textbf{Denoising Diffusion Probabilistic Models (DDPM):} 
     % DDPM frames the reverse process as a stochastic Markov chain \cite{ho_denoising_2020}. The single-step sampling equation subtracts the predicted noise and then injects a controlled amount of fresh stochastic variance $\sigma_t z$, ensuring the process remains probabilistic. 
-    DDPM frames the reverse process as a stochastic Markov chain \cite{ho_denoising_2020}, meaning each sampling step depends strictly on the immediate previous state. During generation, the model predicts and removes a fraction of the noise to denoise the image, but then intentionally injects a controlled amount of fresh stochastic noise (variance). This added variance ensures the reverse trajectory remains probabilistic, mirroring the stochastic nature of the forward process.
+    DDPM frames the reverse process as a stochastic Markov chain \cite{ho_denoising_2020}, meaning each sampling step depends strictly on the immediate previous state. During generation, the model predicts and removes a fraction of the noise to denoise the image, but then intentionally injects a controlled amount of fresh stochastic noise (variance). This added variance ensures the reverse trajectory remains probabilistic, mirroring the stochastic nature of the forward process. In terms of \autoref{eq:bg_generalized_sampling}, this corresponds to the choice $\sigma_t = \sqrt{\tilde{\beta}_t}$, with $\tilde{\beta}_t = \tfrac{1-\overline{\alpha}_{t-1}}{1-\overline{\alpha}_t}\beta_t$, which keeps the forward process Markovian and recovers the standard DDPM ancestral sampler.
     
     \item \textbf{Denoising Diffusion Implicit Models (DDIM):} 
     % By generalizing the forward process to allow non-Markovian steps while sharing the exact same marginals, and setting the stochastic variance term to zero, the DDIM sampling update becomes a deterministic, discrete-time difference equation \cite{song_denoising_2022}. Because this new trajectory is deterministic, the model can safely skip steps in the sequence, resulting in much faster generation times while utilizing the exact same pre-trained network $\epsilon_{\hat{\theta}}$.
-    By generalizing the forward process to allow non-Markovian steps (meaning the sampling trajectory can safely skip intermediate states) while sharing the exact same marginal distributions, DDIM alters the sampling process \cite{song_denoising_2022}. Crucially, by setting the aforementioned stochastic variance term to zero, the DDIM sampling update becomes a deterministic, discrete-time difference equation. Because this new trajectory is deterministic and non-Markovian, the model can safely skip steps in the sequence, resulting in much faster generation times while utilizing the exact same pre-trained network $\epsilon_{\hat{\theta}}$.
+    DDIM generalizes the forward process to a \emph{non-Markovian} family in which each $x_t$ is conditioned on both $x_{t-1}$ and the clean sample $x_0$, while keeping the marginals $q(x_t|x_0)$ identical to those of DDPM \cite{song_denoising_2022}. Because the marginals are unchanged, the same pre-trained network $\epsilon_{\hat{\theta}}$ can be reused without retraining. Setting the stochastic variance term to zero ($\sigma_t = 0$ in \autoref{eq:bg_generalized_sampling}, which removes the noise term $\sigma_t \omega$) then makes the update a deterministic, discrete-time difference equation. Separately and this is what actually enables fast sampling because the training objective depends only on those marginals, the generative process can be run over a short increasing sub-sequence $\tau \subset \{1, \dots, T\}$ rather than all $T$ steps, accelerating generation by roughly an order of magnitude at a modest cost in quality \cite{song_denoising_2022}. This is the regime we use for the ImageNet \acs{ADM} experiments (\autoref{ch:reproduce_adm}).
 \end{itemize}
 
-\subsection{Broader Context and Continuous Frameworks (WIP)}
-While this thesis primarily focuses on the classical discrete-time diffusion formulation, it is important to note that the field has increasingly embraced continuous-time perspectives. Frameworks such as Score-Based Generative Models (SGMs) recast the forward and reverse steps as continuous trajectories governed by Stochastic Differential Equations (SDEs). Similarly, Flow Matching and Continuous Normalizing Flows directly learn vector fields that define optimal, deterministic ODE paths between distributions. Crucially, as we will explore in subsequent chapters, probabilistic frameworks for estimating generative uncertainty can often be seamlessly generalized across both discrete diffusion and continuous flow-matching paradigms \cite{jazbec_generative_2025}.
+Beyond efficiency, the \emph{determinism} of the generative path matters for this thesis. Fixing the sampling randomness inherently for DDIM, or by fixing the noise seed for DDPM turns the sampler into a deterministic map $g_{\theta}(z)$ from a fixed latent $z$ to an image, at fixed weights $\theta$. This is what later allows the generative-uncertainty framework to isolate the \emph{epistemic} uncertainty in the weights from the inherent stochasticity of sampling, so that any variation in the output can be attributed to the weights alone (\autoref{sec:bayesian_model}).
 
-\subsection{Towards Generative Uncertainty (WIP)}
-The standard training formulation described above optimizes the objective $\mathcal{L}_{simple}$ to yield a single, deterministic point estimate for the network weights, $\hat{\theta}$. While this Maximum Likelihood/MSE approach effectively learns the data distribution and generates high-quality samples on average, it leaves the model fundamentally blind to its own \textit{epistemic uncertainty} its confidence in the learned weights given a finite amount of training data. Consequently, the model cannot distinguish between well-learned regions of the data manifold and out-of-distribution or ambiguous regions, leading to the occasional synthesis of low-quality or non-semantic samples. To quantify this uncertainty and detect such failures, we must transition from deterministic point estimates to a rigorous probabilistic treatment of the network weights themselves.
+\subsection{Broader Context and Continuous Frameworks}
+\label{subsec:bg_continuous}
+The discrete-time formulation used throughout this thesis is one instance of a broader family of generative models, which we mention only for context. \textcite{song_score-based_2021} show that diffusion can be cast in continuous time as a stochastic differential equation whose reverse process depends on the data only through the score $\nabla_x \log p_t(x)$, with DDPM recovered as a particular discretization. More radically, Continuous Normalizing Flows \parencite{chen_neural_2019} and Flow Matching \parencite{lipman_flow_2023} dispense with the noising/denoising chain altogether and instead learn a deterministic ordinary differential equation that transports the prior directly to the data distribution. We do not use these formulations in our experiments; we note them because the generative-uncertainty framework studied in this thesis is not specific to diffusion. In particular, \textcite{jazbec_generative_2025} apply it post-hoc to both diffusion and flow-matching models, so the methods developed in the following chapters carry over to the continuous and flow-based settings as well.
+
+\subsection{Towards Generative Uncertainty}
+The standard training formulation described above optimizes the objective $\mathcal{L}_{simple}$ to yield a single, deterministic point estimate for the network weights, $\hat{\theta}$. While this Maximum Likelihood/MSE approach effectively learns the data distribution and generates high-quality samples on average, it leaves the model fundamentally blind to its own \emph{epistemic uncertainty} its confidence in the learned weights given a finite amount of training data. Consequently, the model cannot distinguish between well-learned regions of the data manifold and out-of-distribution or ambiguous regions, leading to the occasional synthesis of low-quality or non-semantic samples exactly the failures the filtering experiments of this thesis aim to detect (\autoref{ch:reproduce_toy}, \autoref{ch:reproduce_adm}). To quantify this uncertainty, we must transition from a deterministic point estimate $\hat{\theta}$ to a probabilistic treatment of the network weights themselves. We develop the tools for this in the next two sections Bayesian inference over the weights (\autoref{sec:bg_bayesian}) and its tractable Laplace approximation (\autoref{sec:bg_laplace}) before assembling them into the generative-uncertainty model of \autoref{sec:bayesian_model}.
 
 
 

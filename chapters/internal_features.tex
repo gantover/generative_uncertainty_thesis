@@ -197,8 +197,12 @@ We expect Internal UNET to perform better on those metrics since it is made to f
     \label{fig:unet_vs_clip_fpr}
 \end{figure}
 
-\subsection{Future Work}
+\subsection{Internal Encoder Filtering vs Classifier Guidance}
 
+In \autoref{ch:classifier} we found that adding classifer guidance to the \acs{ADM} reduced the FID down further than any filtering method. 
+By using the internal encoder however, we manage to keep the FID lower during a much larger part of the filtering process \autoref{fig:unet_vs_clip_fpr}. Although we don't get as low as the classifier guidance, taking into account the bias (represented by the \texttt{random} baseline) induced by reducing the number of samples (\autoref{sub:problems_inception}), we can say that the internal encoder filtering is cloe to the classifier guidance results on the FID metric. 
+
+\subsection{Future Work}
 
 
 \paragraph{Direct Noise Injection}
@@ -206,7 +210,9 @@ With this chapter, we've not actually fixed the Bayesian Framework, with \autore
 % The fact that $t=0$ seemed to be the best performing timestep to compute the uncertainty is even more encouraging as it implies that we can use already 
 Although doing so would completely depart from the Bayesian framework, it would still provide valuable uncertainty measurement that are directly linked to the model's training manifold. Testing an internal encoder with \acs{DNI} is left as future work.
 
-Still, Bayesian framework should not be discredited, as it is also likely that heavy approximations made the Bayesian uncertainty signal very weak. Improving the posterior approximation significantly with methods such as \cite{gegenfurtner_reducing_2026} to see if we can get a useful bayesian uncertainty signal back is also left as future work. 
+Still, Bayesian framework should not be discarded, as it is also likely that heavy approximations made the Bayesian uncertainty signal very weak. Improving the posterior approximation significantly with methods such as \cite{gegenfurtner_reducing_2026} to see if we can get a useful bayesian uncertainty signal back is also left as future work. 
+
+A deeper investigation of the relation between
 
 \paragraph{The Last Layer Perturbation}
 One important caveat that further discredits the heavily approximated Bayesian posterior's role in the uncertainty score: only the last layer of the \acs{ADM} model is perturbed by the

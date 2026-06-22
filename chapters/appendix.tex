@@ -79,9 +79,9 @@
 %%% End:
 
 
-% ---------------------------------------------------------
+%                    
 % APPENDIX STARTS HERE
-% ---------------------------------------------------------
+%                    
 
 \appendix
 \chapter{Mathematical Foundations of Diffusion Models}
@@ -89,12 +89,12 @@
 
 \vspace{1cm}
 
-This appendix provides the exhaustive mathematical proofs and derivations for the discrete-time diffusion framework outlined conceptually in \autoref{sec:bg_diffusion}. 
+This appendix provides the exhaustive mathematical proofs and derivations for the discrete-time diffusion framework outlined conceptually in \autoref{sec:bg_diffusion}. The forward-process and variational derivations follow \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}, and the generalized sampler follows \textcite{song_denoising_2022}.
 
 \section{The Forward Process and Reparameterization}
 \label{app:diffusion_forward}
 
-The single-step forward transition is defined as a Gaussian distribution centered around the scaled previous timestep:
+Following \textcite{ho_denoising_2020}, the single-step forward transition is defined as a Gaussian distribution centered around the scaled previous timestep:
 \begin{equation}
     q(x_t | x_{t-1}) = \mathcal{N}(x_t; \sqrt{1 - \beta_t} x_{t-1}, \beta_t I).
 \end{equation}
@@ -113,12 +113,12 @@ By recursively applying the reparameterization trick and leveraging the property
         &= \dots \nonumber \\
         &= \sqrt{\overline{\alpha}_{t}}x_{0} + \sqrt{1-\overline{\alpha}_{t}}\epsilon.
 \end{align}
-This allows us to sample $x_t$ directly from $x_0$ without iterating through intermediate steps.
+Equivalently, the marginal is $q(x_t | x_0) = \mathcal{N}(x_t; \sqrt{\overline{\alpha}_t}\,x_0, (1-\overline{\alpha}_t) I)$, which allows us to sample $x_t$ directly from $x_0$ without iterating through intermediate steps \parencite{ho_denoising_2020}.
 
 \section{Derivation of the Variational Lower Bound (VLB)}
 \label{app:diffusion_vlb}
 
-To optimize the neural network $p_\theta$, we must construct a tractable upper bound on the negative log-likelihood of the data. By introducing the forward process $q(x_{1:T}|x_0)$ and applying Jensen's inequality, we obtain the VLB:
+This derivation follows \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}. To optimize the neural network $p_\theta$, we must construct a tractable upper bound on the negative log-likelihood of the data. By introducing the forward process $q(x_{1:T}|x_0)$ and applying Jensen's inequality, we obtain the VLB:
 \begin{align}
     -\log p_\theta(x_0) &= -\log \mathbb{E}_{q(x_{1:T}|x_0)} \left[ \frac{p_\theta(x_{0:T})}{q(x_{1:T}|x_0)} \right] \nonumber \\
     &\le \mathbb{E}_{q(x_{1:T}|x_0)} \left[ -\log \frac{p_\theta(x_{0:T})}{q(x_{1:T}|x_0)} \right] = \mathcal{L}_{VLB}.
@@ -163,32 +163,47 @@ Substituting this back into the full $\mathcal{L}_{VLB}$ equation allows us to g
 \begin{equation}
     \mathcal{L}_{VLB} = \mathbb{E}_q \left[ L_T + \sum_{t=2}^T L_{t-1} + L_0 \right],
 \end{equation}
-where $L_{t-1} = D_{KL}(q(x_{t-1} | x_t, x_0) \parallel p_\theta(x_{t-1} | x_t))$.
+where the three groups of terms are
+\begin{align}
+    L_T &= D_{KL}(q(x_T | x_0) \parallel p(x_T)), \\
+    L_{t-1} &= D_{KL}(q(x_{t-1} | x_t, x_0) \parallel p_\theta(x_{t-1} | x_t)), \\
+    L_0 &= -\log p_\theta(x_0 | x_1).
+\end{align}
+The prior-matching term $L_T$ carries no learnable parameters (the forward process is fixed), and is therefore constant during training. This is the variance-reduced decomposition of \textcite{ho_denoising_2020}, in which every KL term compares two Gaussians and can be evaluated in closed form.
 
 \section{Analytical Solution of the KL Divergence}
 \label{app:diffusion_kl}
 
-When conditioned on the original uncorrupted image $x_0$, the true reverse step $q(x_{t-1}|x_t, x_0)$ within $L_{t-1}$ becomes a tractable Gaussian distribution $\mathcal{N}(x_{t-1}; \tilde{\mu}_t(x_t, x_0), \tilde{\beta}_t I)$. The analytical mean and variance of this distribution are derived as:
+When conditioned on the original uncorrupted image $x_0$, the true reverse step $q(x_{t-1}|x_t, x_0)$ within $L_{t-1}$ becomes a tractable Gaussian distribution $\mathcal{N}(x_{t-1}; \tilde{\mu}_t(x_t, x_0), \tilde{\beta}_t I)$. The analytical mean and variance of this distribution are derived as \parencite{ho_denoising_2020}:
 \begin{align}
     \tilde{\mu}_t(x_t, x_0) &= \frac{\sqrt{\overline{\alpha}_{t-1}}\beta_t}{1-\overline{\alpha}_t}x_0 + \frac{\sqrt{\alpha_t}(1-\overline{\alpha}_{t-1})}{1-\overline{\alpha}_t}x_t, \\
     \tilde{\beta}_t &= \frac{1-\overline{\alpha}_{t-1}}{1-\overline{\alpha}_t}\beta_t.
 \end{align}
 
-Assuming our network $p_\theta$ is parameterized as a Gaussian with fixed variance $\Sigma_t = \sigma_t^2 I$ and a learned mean $\mu_\theta(x_t, t)$, the KL divergence mathematically reduces to the expected Mean Squared Error (MSE) between their means:
+Assuming our network $p_\theta$ is parameterized as a Gaussian with fixed variance $\Sigma_t = \sigma_t^2 I$ and a learned mean $\mu_\theta(x_t, t)$, the KL divergence between the two Gaussians reduces (up to a $\theta$-independent constant $C$ absorbing the covariance terms) to the expected Mean Squared Error (MSE) between their means \parencite{ho_denoising_2020}:
 \begin{equation}
     L_{t-1} = \mathbb{E}_q \left[ \frac{1}{2\sigma_t^2} ||\tilde{\mu}_t(x_t, x_0) - \mu_\theta(x_t, t)||_2^2 \right] + C.
 \end{equation}
 
-By expressing $x_0$ algebraically in terms of $x_t$ and the noise $\epsilon$:
+By expressing $x_0$ algebraically in terms of $x_t$ and the noise $\epsilon$ via \autoref{eq:forward_reparam},
 \begin{equation}
     x_0 = \frac{1}{\sqrt{\overline{\alpha}_t}}(x_t - \sqrt{1 - \overline{\alpha}_t}\epsilon),
 \end{equation}
-and substituting this into the target mean $\tilde{\mu}_t$, we see the target mean is entirely dictated by the injected noise. We parameterize the model's mean to mirror this relationship using a noise-prediction network $\epsilon_\theta(x_t, t)$:
+and substituting this into the target mean $\tilde{\mu}_t(x_t, x_0)$ defined above, the dependence on $x_0$ cancels and $\tilde{\mu}_t$ is left entirely as a function of $x_t$ and the injected noise $\epsilon$:
 \begin{equation}
+\label{eq:app_target_mean_noise}
+    \tilde{\mu}_t(x_t, x_0) = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{\beta_t}{\sqrt{1-\overline{\alpha}_t}}\,\epsilon \right).
+\end{equation}
+Since $x_t$ is supplied to the network as input, the only unknown quantity it must recover is $\epsilon$. Following \textcite{ho_denoising_2020}, we therefore parameterize the model's mean to mirror \autoref{eq:app_target_mean_noise} exactly, replacing the true noise $\epsilon$ with a noise-prediction network $\epsilon_\theta(x_t, t)$:
+\begin{equation}
+\label{eq:app_mu_theta}
     \mu_\theta(x_t, t) = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{\beta_t}{\sqrt{1-\overline{\alpha}_t}} \epsilon_\theta(x_t, t) \right).
 \end{equation}
-
-Substituting this parameterization back into $L_{t-1}$ simplifies the exact KL divergence into a weighted MSE loss:
+With this choice the mean error in $L_{t-1}$ becomes a pure noise-prediction error, since
+\begin{equation}
+    \tilde{\mu}_t(x_t, x_0) - \mu_\theta(x_t, t) = \frac{\beta_t}{\sqrt{\alpha_t}\sqrt{1-\overline{\alpha}_t}}\big(\epsilon_\theta(x_t, t) - \epsilon\big).
+\end{equation}
+Substituting this back into $L_{t-1}$ simplifies the exact KL divergence into the weighted MSE loss of \textcite{ho_denoising_2020}:
 \begin{equation}
     L_{t-1} - C = \mathbb{E}_{x_0, \epsilon} \left[ \frac{\beta_t^2}{2\sigma_t^2 \alpha_t (1-\overline{\alpha}_t)} ||\epsilon - \epsilon_\theta(\sqrt{\overline{\alpha}_t}x_0 + \sqrt{1-\overline{\alpha}_t}\epsilon, t)||_2^2 \right].
 \end{equation}
@@ -197,25 +212,51 @@ As noted in \autoref{sec:bg_diffusion}, discarding the time-dependent weights yi
 \section{Generalized Sampling: From DDPM to DDIM}
 \label{app:diffusion_sampling}
 
-While \autoref{sec:bg_diffusion} conceptually introduces the difference between DDPM and DDIM samplers, we can formalize this distinction by examining the generalized reverse sampling step introduced by \textcite{song_denoising_2022}. 
+\autoref{sec:bg_diffusion} introduces the DDPM and DDIM samplers conceptually; here we derive the generalized reverse step of \textcite{song_denoising_2022} from which both follow as special cases.
 
-For a generalized non-Markovian forward process that preserves the exact same marginal distribution $q(x_t|x_0)$ as DDPM, the reverse sampling step to generate $x_{t-1}$ from $x_t$ is defined as:
+\textcite{song_denoising_2022} replace the Markovian DDPM forward chain with a family of inference processes $q_\sigma(x_{1:T}|x_0) = q_\sigma(x_T|x_0)\prod_{t=2}^{T} q_\sigma(x_{t-1}|x_t, x_0)$ indexed by $\sigma \in \mathbb{R}^T_{\ge 0}$. Each reverse-conditional $q_\sigma(x_{t-1}|x_t, x_0)$ is conditioned on the clean sample $x_0$; applying Bayes' rule, the implied forward step $q_\sigma(x_t|x_{t-1}, x_0)$ therefore also depends on $x_0$, so each $x_t$ depends on both $x_{t-1}$ and $x_0$. This is what makes the process \emph{non-Markovian}, in contrast to the DDPM forward chain of \autoref{app:diffusion_forward}.
 
-\begin{align}
-x_{t-1} &= \nonumber\\ &\sqrt{\bar{\alpha}_{t-1}} \underbrace{\left( \frac{x_t - \sqrt{1-\bar{\alpha}_t} \epsilon_\theta(x_t, t)}{\sqrt{\bar{\alpha}_t}} \right)}_{\text{Predicted } x_0} \nonumber \\ &+ \underbrace{\sqrt{1 - \bar{\alpha}_{t-1} - \sigma_t^2} \cdot \epsilon_\theta(x_t, t)}_{\text{Direction pointing to } x_t} \nonumber \\ &+\underbrace{\sigma_t \omega}_{\text{Random noise}}
-\end{align}
+Concretely, the reverse-conditional is taken to be the Gaussian
+\begin{equation}
+\label{eq:app_reverse_conditional}
+    q_\sigma(x_{t-1}|x_t, x_0) = \mathcal{N}\!\left( x_{t-1};\; \sqrt{\overline{\alpha}_{t-1}}\,x_0 + \sqrt{1-\overline{\alpha}_{t-1}-\sigma_t^2}\;\frac{x_t - \sqrt{\overline{\alpha}_t}\,x_0}{\sqrt{1-\overline{\alpha}_t}},\; \sigma_t^2 I \right).
+\end{equation}
+Its mean is engineered (their Lemma~1) so that the marginals remain \emph{identical} to those of DDPM, $q_\sigma(x_t|x_0) = \mathcal{N}(x_t; \sqrt{\overline{\alpha}_t}\,x_0, (1-\overline{\alpha}_t) I)$ for every $\sigma$   which is precisely why the network $\epsilon_\theta$ trained under the DDPM objective can be reused unchanged.
 
-where $\omega \sim \mathcal{N}(0, I)$ is standard Gaussian noise, and $\sigma_t$ controls the stochastic variance injected into the process. 
+At inference time the clean sample $x_0$ is unavailable. Given $x_t$, the trained network predicts the noise and inverts \autoref{eq:forward_reparam} to obtain an estimate of $x_0$,
+\begin{equation}
+\label{eq:app_predicted_x0}
+    f_\theta(x_t, t) := \frac{x_t - \sqrt{1-\overline{\alpha}_t}\,\epsilon_\theta(x_t, t)}{\sqrt{\overline{\alpha}_t}},
+\end{equation}
+and the generative process samples $x_{t-1}$ from the reverse-conditional with $x_0$ replaced by this estimate, $p_\theta(x_{t-1}|x_t) = q_\sigma\big(x_{t-1} \,\big|\, x_t, f_\theta(x_t,t)\big)$. This substitution simplifies neatly: plugging $x_0 = f_\theta(x_t,t)$ into the normalized residual of \autoref{eq:app_reverse_conditional} gives
+\begin{equation}
+\label{eq:app_residual_collapse}
+    \frac{x_t - \sqrt{\overline{\alpha}_t}\,f_\theta(x_t,t)}{\sqrt{1-\overline{\alpha}_t}}
+    = \frac{x_t - \big(x_t - \sqrt{1-\overline{\alpha}_t}\,\epsilon_\theta(x_t,t)\big)}{\sqrt{1-\overline{\alpha}_t}}
+    = \epsilon_\theta(x_t, t),
+\end{equation}
+so the residual collapses exactly to the predicted noise. Writing the resulting Gaussian as a reparameterized sample (its mean plus $\sigma_t\omega$) therefore yields the generalized reverse step
+\begin{equation}
+\label{eq:app_generalized_sampling}
+\begin{aligned}
+    x_{t-1} = \sqrt{\overline{\alpha}_{t-1}} \underbrace{\left( \frac{x_t - \sqrt{1-\overline{\alpha}_t}\,\epsilon_\theta(x_t, t)}{\sqrt{\overline{\alpha}_t}} \right)}_{\text{predicted } x_0 \,=\, f_\theta(x_t,t)}
+    &+ \underbrace{\sqrt{1 - \overline{\alpha}_{t-1} - \sigma_t^2}\; \epsilon_\theta(x_t, t)}_{\text{direction pointing to } x_t} \\
+    &+ \underbrace{\sigma_t \omega}_{\text{random noise}},
+\end{aligned}
+\end{equation}
+where $\omega \sim \mathcal{N}(0, I)$ and $\sigma_t \ge 0$ controls the injected stochasticity. The two deterministic terms are now transparent: $\sqrt{\overline{\alpha}_{t-1}}\,f_\theta(x_t,t)$ is the rescaled prediction of $x_0$, and the second term steps back toward $x_t$ along the predicted-noise direction, with magnitude set by $\sigma_t$.
 
-The choice of $\sigma_t$ dictates the sampling paradigm:
+The choice of $\sigma_t$ recovers the two samplers of interest:
 \begin{itemize}
-    \item \textbf{DDPM:} By setting $\sigma_t = \sqrt{(1 - \bar{\alpha}_{t-1}) / (1 - \bar{\alpha}_t)} \sqrt{1 - \alpha_t}$, the process matches the original Markovian trajectory of DDPM \parencite{ho_denoising_2020}.
-    \item \textbf{DDIM:} By setting the stochastic variance to zero ($\sigma_t = 0$), the random noise term $\sigma_t z$ vanishes. The term inside the square root simplifies, leaving a purely deterministic update rule:
-    
-    $$x_{t-1} = \sqrt{\bar{\alpha}_{t-1}} \left( \frac{x_t - \sqrt{1-\bar{\alpha}_t} \epsilon_\theta(x_t, t)}{\sqrt{\bar{\alpha}_t}} \right) + \sqrt{1 - \bar{\alpha}_{t-1}} \cdot \epsilon_\theta(x_t, t)$$
+    \item \textbf{DDPM:} Setting $\sigma_t = \sqrt{(1 - \overline{\alpha}_{t-1}) / (1 - \overline{\alpha}_t)} \, \sqrt{1 - \alpha_t} = \sqrt{\tilde{\beta}_t}$ makes the forward process Markovian and recovers the original ancestral sampler of DDPM \parencite{ho_denoising_2020, song_denoising_2022}, with $\tilde{\beta}_t$ the forward-posterior variance of \autoref{app:diffusion_kl}.
+    \item \textbf{DDIM:} Setting the variance to zero ($\sigma_t = 0$) removes the noise term $\sigma_t \omega$ and lets the square-root coefficient simplify to $\sqrt{1 - \overline{\alpha}_{t-1}}$, leaving the purely deterministic update
+    \begin{equation}
+    \label{eq:app_ddim_deterministic}
+        x_{t-1} = \sqrt{\overline{\alpha}_{t-1}} \left( \frac{x_t - \sqrt{1-\overline{\alpha}_t}\,\epsilon_\theta(x_t, t)}{\sqrt{\overline{\alpha}_t}} \right) + \sqrt{1 - \overline{\alpha}_{t-1}}\, \epsilon_\theta(x_t, t).
+    \end{equation}
 \end{itemize}
 
-Because this DDIM update equation contains no stochasticity, the reverse process becomes an Euler integration step of an Ordinary Differential Equation (ODE). This deterministic nature allows the model to safely evaluate the network on a sub-sequence of timesteps, accelerating generation without requiring the model to be retrained.
+Because the DDIM update \eqref{eq:app_ddim_deterministic} contains no stochasticity, \textcite{song_denoising_2022} show it is the Euler discretization of an ordinary differential equation   the deterministic regime used for the \acs{ADM} experiments in \autoref{ch:reproduce_adm}.
 
 % \chapter{Internal UNET Encoder}
 
