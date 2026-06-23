@@ -147,11 +147,13 @@ $\mathcal{M}_k(\boldsymbol{\Phi})$:
   \label{eq:recall}
 \end{align}
 %
+\begin{tcolorbox}[colback=gray!10!white,colframe=gray!50!black,sharp corners]
 Precision counts the fraction of generated samples that fall inside the real
 manifold (i.e.\ satisfy the $k$-NN ball condition \eqref{eq:knn_ball_cond}). Recall counts the fraction of real samples covered by the generated manifold.
+\end{tcolorbox}
+
 Both metrics make no distributional assumptions, in contrast to FID.
- 
-Precision and recall are not independent: retaining only the highest-quality generated images improves precision but shrinks the coverage of real modes, reducing recall.
+Precision and recall are not independent ($\indep$): retaining only the highest-quality generated images improves precision but shrinks the coverage of real modes, reducing recall.
 % This trade-off is visible throughout our filtering experiments and mirrors the
 % quality-diversity trade-off induced by classifier guidance \cite{dhariwal_diffusion_2021}.
 
@@ -574,7 +576,7 @@ Evaluating the full gradient at $\hat\theta$ yields the exact error term:
 J = \mathbf{0} - \gamma \hat\theta = - \gamma \hat\theta
 \end{equation}
 
-We are therefore trying to find a $\gamma$ that's negligible compared to the Hessian while still big enough to stabilize the inversion of the Hessian properly.
+We therefore seek a $\gamma$ small enough that the residual gradient $J = -\gamma\hat\theta$ barely shifts the mode (so that centering the approximation at $\hat\theta$ remains valid), yet large enough to stabilize the inversion of the Hessian.
 
 In some cases, the \acs{MLE} $\simeq$ \acs{MAP} approximation holds because of the massive scale of the data likelihood compared to the prior term. Following
 the empirical validation in (\cite{jazbec_generative_2025}, Appendix D), we set
@@ -736,7 +738,7 @@ Since we are optimizing $\theta$ when training, anything that's independent of $
 -\log p(\mathcal{D}_{noise} | \theta) = \sum_{i=1}^N -\log p(\epsilon_i | x_{t,i}, t_i, \theta) + C \label{eq:general_noise_likelihood}
 \end{align}
 
-For this \acs{NLL} to be equal to $\mathcal{L}_{\mathrm{simple}}$, we define:
+For this \acs{NLL} to reduce to $\mathcal{L}_{\mathrm{simple}}$ (up to normalization), we define:
 \begin{align}
     p(\epsilon_i | x_{t,i}, t_i, \theta) &= \mathcal{N}\left(\epsilon_i; \epsilon_\theta(x_{t,i}, t_i), s^2 I\right) \label{eq:noise_likelihood}
 \end{align}
@@ -765,10 +767,16 @@ Which leads to the \acs{NLL}, by injecting \autoref{eq:noise_loss_single_lik} in
 \begin{align}
     - \log p(\mathcal{D}_{noise}|\theta) &= \sum^N_{i=1} - \log p(\epsilon_i|x_{t,i},t_i,\theta) + C\\
     &= \sum^N_{i=1} ||\epsilon_i - \epsilon_\theta(x_{t,i}, t_i)||_2^2 + C'\\
-    &= \mathcal{L}_{\mathrm{simple}} + C'
+    &= N\,\mathcal{L}_{\mathrm{simple}} + C' \label{eq:nll_n_lsimple}
 \end{align}
 
-Where $C,C'$ just include everything that's constant w.r.t. $\theta$. And we repaired the broken link between the negative log likelihood and the simplified loss.
+Here $C, C'$ collect everything that is constant w.r.t. $\theta$. The factor $N$ simply reflects the difference between a mean and a sum: $\mathcal{L}_{\mathrm{simple}}$ is defined in the literature as a per-sample \emph{expectation} \eqref{eq:simple_loss} (estimated by the empirical mean over the $N$ noise-prediction samples), whereas the dataset negative log-likelihood is the corresponding \emph{sum} over those samples. We keep $\mathcal{L}_{\mathrm{simple}}$ exactly as defined in \cite{ho_denoising_2020}; the constant $N$ is independent of $\theta$, so it leaves the trained minimizer $\hat\theta$ unchanged. It is, however, the genuine scale of the data likelihood, and it stays in the likelihood term: the Laplace Hessian is the curvature of the full (summed) negative log-likelihood,
+\begin{equation}
+\nabla^2_\theta\left[-\log p(\mathcal{D}_{noise}|\theta)\right]\big|_{\hat\theta} = N\,\nabla^2_\theta\,\mathcal{L}_{\mathrm{simple}}(\theta)\big|_{\hat\theta},
+\label{eq:nll_hessian_scale}
+\end{equation}
+which we estimate with the empirical Fisher accumulated over the dataset (\autoref{sec:bg_gu_further_approx}). 
+% The isotropic Gaussian prior then contributes its precision $\gamma I$ on top (\autoref{sub:la_trained_on_mle}) as a genuine prior. This repairs the broken link of issue \ref{enum:l_simple}.
 
 % Under the assumption of a uniform prior (effectively making \acs{MLE} $=$ \acs{MAP}), we can prove that the negative log-likelihood perfectly equates to the diffusion loss: $$-\log(p(\mathcal{D}_{noise}|\theta)p(\theta)) = \mathcal{L}_{\mathrm{simple}} + C$$ (detailed in ). This shift ensures that the loss function evaluated for the Laplace approximation's Hessian is mathematically identical to the exact negative log-likelihood.
 
@@ -857,8 +865,10 @@ In the end, we get $p(e|z,\mathcal{D}) \simeq \mathcal{N}(e;\mu^*,\Sigma^{d*})$.
 The diagonal covariance matrix $\Sigma^{d*}$ is in $\mathbb{R}^{K\times K}$; we define $\sigma_k^2$ as its $k$-th diagonal element (i.e.\ the variance of the $k$-th semantic dimension) and the uncertainty is defined as:
 
 \begin{equation}
-\mathcal{U}(x) = \frac{1}{2} \sum_{k=1}^K \ln(\sigma_{k}^2) + C
+\mathcal{U}(x) = \frac{1}{2} \sum_{k=1}^K \ln(\sigma_{k}^2) + const
 \end{equation}
+
+As a side note, this Monte Carlo approximation of the bayesian posterior objective using a finite ensemble of models makes other non-Bayesian methods integrate seamlessly in our framework. For instance, in the \textit{Toy Experiment} we first use a Deep Ensemble (\acs{DE}) of models which is obtained by training multiple models with different random seeds.
 
 \section{Further Approximation Considerations}
 \label{sec:bg_gu_further_approx}
@@ -889,10 +899,11 @@ This still gives us a $P\times P$ sized matrix. In \cite{jazbec_generative_2025}
 \hat{F}_{pp} = \frac{1}{N} \sum_{i=1}^N \left( \frac{\partial \log p(\epsilon_i|x_{t,i},t_i, \theta)}{\partial \theta_p} \right)^2
 \end{equation}
 
-In the end, we get 
+In the end, we get
 \begin{equation}
-H \simeq \mathrm{Diag}(\hat{F}) + \gamma I
+H \simeq N\,\mathrm{Diag}(\hat{F}) + \gamma I.
 \end{equation}
+The factor $N$ converts the per-sample averaged Fisher $\hat F$ into the curvature of the full-dataset negative log-likelihood (\autoref{eq:nll_hessian_scale}); equivalently, $N\hat F$ is just the empirical Fisher \emph{summed} over the $N$ samples rather than averaged. The prior precision $\gamma$ is added on top: because the data term scales with $N$ while the prior does not, $\gamma$ is small relative to the likelihood curvature, which is exactly the regime in which the \acs{MLE}~$\simeq$~\acs{MAP} approximation of \autoref{sub:la_trained_on_mle} would be justified.
 
 To further reduce $P$, instead of using a \acs{LA} over the full network, \cite{jazbec_generative_2025} restricts the approximation to the last layer of the network $=:$ Last Layer Laplace Approximation \acs{LLLA}.
 
@@ -902,12 +913,16 @@ To further reduce $P$, instead of using a \acs{LA} over the full network, \cite{
 In \autoref{ch:toy_exp_posterior}, we still show that despite the criticism, the \acs{LLLA} can be a very capable approximation to filter \acs{OOD} samples for a Toy model.
 \end{tcolorbox}
 
-Finally, to reduce the time needed to compute $\hat{F}$ even further, (\cite{jazbec_generative_2025}, Appendix D) use only $1\%$ of the training data for the \acs{ADM} (the Toy Model will use the full training set).
+Finally, to reduce the time needed to compute $\hat{F}$ even further, (\cite{jazbec_generative_2025}, Appendix D) use only $1\%$ of the training data for the \acs{ADM} (the \textit{Toy Model} will use the full training set).
+
+\begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
+As a side note, \emph{if} the empirical Fisher is accumulated as a sum over training samples (as the reference implementation \parencite{jazbec_generative_2025} appears to do), the negative-log-likelihood term of the Hessian scales with $N$ (\autoref{eq:nll_hessian_scale}). Computing the empirical Fisher on only $1\%$ of the data would then affect the posterior covariance matrix $\Sigma_\theta = H^{-1}$ in a way that can increase the spread of the gaussian weight posterior distribution. The effect of playing with the scale of the covariance matrix is investigated on the \textit{Toy Experiment} in \autoref{ch:toy_exp_posterior}. It is however much harder to investigate on the \acs{ADM} because of the semantic encoder possibly hides any improvement to the posterior approximation (\autoref{ch:semantic-encoder}).
+\end{tcolorbox}
 
 \subsection{Toy Model Posterior Approximation}
 \label{sub:gu_th_toy_model_posterior_approximation}
 
-In this thesis, chapters \ref{ch:reproduce_toy}, \ref{ch:quantifying_gu_filtering_toy}, \ref{ch:toy_exp_posterior} will use a much smaller diffusion \textit{Toy Model} that works with $x \in \mathbb{R}^2$. 
+Chapters \ref{ch:reproduce_toy}, \ref{ch:quantifying_gu_filtering_toy}, \ref{ch:toy_exp_posterior} use the much smaller diffusion \textit{Toy Model} that works with $x \in \mathbb{R}^2$. 
 
 The size of the Toy Model is small enough to allow the training of multiple independent models giving us a Deep Ensemble (\acs{DE}) that will be compared to an \acs{LLLA} Sampled Ensemble (as used for the \acs{ADM}).
 
