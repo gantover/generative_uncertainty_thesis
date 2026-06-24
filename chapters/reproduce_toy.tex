@@ -31,7 +31,7 @@ It is important to note that a Deep ensemble behaves very different from a Lapla
 \end{tcolorbox}
 
 \paragraph{Inference}
-We created a dataset of pure noise and gave this pure noise dataset to all 1+M models to generate $2^{16}=65536$ samples per model. We fixed the \texttt{pytorch} seed such that the inference randomness of the DDPM is the same across the 6 models(to isolate the epistemic uncertainty properly).
+We created a dataset of pure noise and gave this pure noise dataset to all 1+M models to generate $2^{16}=65536$ samples per model. We fixed the \texttt{pytorch} seed such that the inference randomness of the DDPM is the same across the 6 models (to isolate the epistemic uncertainty properly).
 
 
 \paragraph{Uncertainty Calculation}
@@ -40,7 +40,18 @@ The uncertainty was calculated as the entropy of a moment matched gaussian distr
 
 \section{Experiment Results}
 
-We see on \autoref{fig:toy_repr_de_77} that we visually are able to get similar effectiveness at filtering bad samples as \cite{jazbec_generative_2025}. Therefore proving our codebase is ready for further experiments.
+We first show the original results form \cite{jazbec_generative_2025} to compare our results to.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/toy_experiment/original_jazbec.png}
+    \caption{Original experiment results from \cite{jazbec_generative_2025}}
+    \label{fig:toy_original_jazbec}
+\end{figure}
+
+Then we look at our results \autoref{fig:toy_repr_de_77}. Although we couldn't get to replicate the high spread of \cite{jazbec_generative_2025} modes, 
+we visually are able to get similar effectiveness at filtering bad samples.  
+We therefore believe our our codebase is ready for further experiments.
 
 \begin{figure}[!htbp]
     \centering

@@ -1,11 +1,11 @@
 \chapter{Conclusion}
 
-\section{Summary}
-
 This thesis went in many directions. The idea of this chapter will be to summarize the main findings and contributions and provide a clear path forward for future work.
 
-\paragraph{Inception Based Metrics}
-The first step of this thesis was to give the theoretical foundation for inception based metrics. Doing so lead us to identify several problems with the FID, Precision and Recall metrics, which motivated the development of the Human Perception Score \acs{HPS} Metric. This new metric is aligned with human perception (as the name suggests), is not affected by an artificial inflation effect when reducing the number of samples and therefore also does not require huge batches of samples to be computed.
+\section{Summary}
+
+\paragraph{Inception Based Metrics and HPSv3}
+The first step of this thesis was to give the theoretical foundation for inception based metrics used to both filter and evaluate filtering metrics. Doing so lead us to identify several problems with the FID, Precision, Recall and Rarity  metrics, which motivated the development of the Human Perception Score \acs{HPS} Metric. This new metric is aligned with human perception (as the name suggests), independent from all other metrics, not affected by an artificial inflation effect when reducing the number of samples and therefore also does not require huge batches of samples to be computed.
 
 \paragraph{Foundations for Bayesian Generative Uncertainty}
 We then started to lay the foundation for Bayesian Generative Uncertainty (\acs{GU}). To do that we first defined what diffusion models are and what training objective they optimize. We then briefly explained what Bayesian machine learning was and the Laplace Approximation \acs{LA} used to make the Bayesian inference tractable. While doing so, we identified a problem with how diffusion models used in this thesis are trained and how it affects the \acs{LA} by exposing an error term that was directly proportional to the prior precision $\gamma$.
@@ -15,7 +15,21 @@ Using this foundation, we finally defined the Bayesian \acs{GU} Framework. We st
 
 \paragraph{Reproducing the Results of \cite{jazbec_generative_2025}}
 
-We briefly showed that we were able to reproduce the results of \cite{jazbec_generative_2025}. Limitations of this reproduction include the lack
+We briefly showed that we were able to reproduce results from \cite{jazbec_generative_2025} and have a proper ground on which to build new experiments. Limitations of this reproduction include the lack of confidence intervals, the lack of \parencite{jazbec_generative_2025} original code for the rarity metric implementation and most importantly the \textit{Toy Experiment} which we could not replicate at $100\%$.
+
+\paragraph{Classifier Guidance}
+As expected when reading the \acs{ADM} paper \parencite{dhariwal_diffusion_2021}, adding classifier guidance to \acs{ADM} made it perform significantly better
+
+\paragraph{Toy Experiment}
+One thing that jazbec did not note is that it essentailly proves that the bayesian framework by itself actually provide an uncertainty signal (we don't need the encoder)...
+
+\paragraph{Posterior Approximation Investigation}
+
+\section{Notable Limitations}
+
+Because of the semantic encoder being a mandatory part of the \acs{ADM} uncertainty computation pipeline and the fact that this same semantic encoder was
+
+\section{Notable Future Work Direction}
 
 % \chapter{Conclusion}
 % \label{ch:conclusion}

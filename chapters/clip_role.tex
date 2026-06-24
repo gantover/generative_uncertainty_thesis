@@ -13,7 +13,14 @@ This leaves the door open to the question: ``What if the semantic encoder actual
 
 \section{Experiment}
 
-To test this hypothesis, we conduct an experiment where instead of using M models from the Laplace Approximated posterior distribution, we entirely skip the M models and use the generated images dataset from the base model and add random noise to the images to create M additional images datasets, we call this direct noise injection (\acs{DNI}). we can then use the same exact uncertainty evaluation pipeline as before and measure how well it performs on both the \cite{jazbec_generative_2025} FID, precision and recall metrics and our own HPSv3 metric.
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/la_role/dni_pipeline.pdf}
+    \caption{\acs{DNI} Pipeline (\warning the noise injected is exaggerated, in practice we use much less noise)}
+    \label{fig:dni_pipeline}
+\end{figure}
+
+To test this hypothesis, we conduct an experiment where instead of using M models from the Laplace Approximated posterior distribution, we entirely skip the M models and use the generated image from the base model and add random noise to the image to create M additional images, we call this direct noise injection (\acs{DNI}). we can then use the same exact uncertainty evaluation pipeline as before and measure how well it performs on both the \cite{jazbec_generative_2025} FID, precision and recall metrics and our own HPSv3 metric. This modified pipeline is illustrated on \autoref{fig:dni_pipeline} 
 
 \section{Results Analysis}
 
@@ -65,7 +72,7 @@ Instead of relying on the very expensive posterior predictive distribution of \p
 \tilde{x} = x + \epsilon \quad \text{where} \quad \epsilon \sim \mathcal{N}(0, \sigma_{noise}^2 I_D)
 \end{align}
 
-Following the evaluation protocol of \cite{jazbec_generative_2025}, we evaluate the uncertainty of the original image $x$ by fitting a diagonal Gaussian distribution on the semantic embeddings $\tilde{e} = c_\phi(\tilde{x})$ and computing its entropy. 
+Following the evaluation protocol of \cite{jazbec_generative_2025}, we get the uncertainty of the original image $x$ by fitting a diagonal Gaussian distribution on the semantic embeddings $\tilde{e} = c_\phi(\tilde{x})$ and computing its entropy. 
 
 Let $\sigma_{\tilde{e},i}^2$ be the variance of the $i$-th semantic dimension. The uncertainty $\mathcal{U}(x)$ is defined as the entropy of the diagonal Gaussian:
 
@@ -143,7 +150,7 @@ The correlation plot and Pearson coefficient $r=0.532$ (\autoref{fig:la_role_cor
 \paragraph{Bayesian Uncertainty is Valuable}
 It is possible that with a proper, more accurate Bayesian approximation to the like of what \cite{gegenfurtner_reducing_2026} did, would provide an uncertainty signal strong enough to go trough the encoder and still provide value.
 
-But we might not even need a more accurate Bayesian approximation. In the context of a Toy model that outputs in 2D space and therefore doesn't need a semantic encoder, we show in \autoref{ch:toy_exp_posterior} that a simple \acs{LLLA} can already provide a very strong uncertainty signal that is enough to filter out OOD samples. The only difference between the \acs{ADM} \acs{LLLA} and the \textit{Toy Model} \acs{LLLA} for the posterior is that the former uses only 1\% of the training data to compute the approximation while the latter uses the full training set (\autoref{sub:gu_th_toy_model_posterior_approximation}). The problem with the current \acs{ADM} \acs{LLLA} could be that 1\% is not enough or that the \acs{LLLA} is too simple for the complexity of the \acs{ADM} compared to the significantly simpler \textit{Toy Model} or other reasons that all need further investigation in future work.
+But we might not even need a more accurate Bayesian approximation. In the context of a Toy model that outputs in 2D space and therefore doesn't need a semantic encoder, we show in \autoref{ch:toy_exp_posterior} that a simple \acs{LLLA} can already provide a very strong uncertainty signal that is enough to filter out OOD samples. The only difference between the \acs{ADM} \acs{LLLA} and the \textit{Toy Model} \acs{LLLA} for the posterior is that the former uses only 1\% of the training data to compute the approximation while the latter uses the full training set (\autoref{sub:gu_th_toy_model_posterior_approximation}). The problem with the current \acs{ADM} \acs{LLLA} could be that 1\% is not enough or that the \acs{LLLA} is too simple for the complexity of the \acs{ADM} compared to the significantly simpler \textit{Toy Model} or other reasons that all need further investigation as future work.
 
 % But in the context of the \textit{Toy Model} (\autoref{ch:toy_exp_posterior}) we prove that the \acs{LLLA} by itself (without a semantic encoder) is highly effective at filtering out \acs{OOD} samples provided we done a proper regularization and scaling of that posterior approximation.
 

@@ -157,6 +157,7 @@ Drawing those buckets in a scatter plot of the filtered samples at the 95th perc
 
 This leads us to investigate why those \textbf{FP}s points have such an high uncertainty despite being located so close to a mode and being a seemingly valid sample. \autoref{fig:sample_accross_models} represents a very high uncertainty sample classified as \textbf{FP}. It is shown across the $1+\mathrm{M} = 6$ models. We immediately understand why we get so many FPs, despite each model producing a valid sample with respect to the reference distribution, the same starting noise $z$ lead to generated samples being assigned to different modes, leading to very high uncertainty.
 
+\paragraph{Conclusion}
 We can conclude from this experiment that uncertainty is not limited to ``hallucinations'' as we defined them. Uncertainty also targets samples where the model was unsure which mode to assign to.
 % We therefore have to define uncertain points as something different from the current definition of hallucinations we have. Uncertainty is a broader concept and is also targeting starting noise for which the model was unsure which mode to assign to.
 
@@ -172,7 +173,7 @@ For the remaining of our experiment, we will simply define the Deep Ensemble bas
 \vspace{20pt}
 
 Until now, we have approximated the posterior distribution using Deep Ensembles, 
-For large models like ADM, training $M$ additional models to get a Deep Ensemble is computationally prohibitive. While late epoch checkpoints or extended training offer alternatives, they remain costly. Following \cite{jazbec_generative_2025}, we focus on the efficient, post-hoc application of generative uncertainty to pretrained models.
+For large models like ADM, training $\mathrm{M}$ additional models to get a Deep Ensemble is computationally prohibitive. While late epoch checkpoints or extended training offer alternatives, they remain costly. Following \cite{jazbec_generative_2025}, we focus on the efficient, post-hoc application of generative uncertainty to pretrained models.
 
 \begin{figure}[!htbp]
     \centering
@@ -331,7 +332,7 @@ From everything we've seen in this toy experiment, there is no clear winner betw
 
 In the case of this toy experiment, if the aim is only to keep samples that belong to that gaussian mixture distribution, \acs{LLLA} is the clear winner. But in other applications like medical upscaling, we could imagine the model being unsure of ``which mode to choose'' to be equivalent to either make a tumor appear in the scaled image or not for instance, in which case \acs{DE} uncertainty would be absolutely mandatory to detect this kind of uncertainty. Still, this is quite speculative and should tested with a proper experiment involving a more meaningful model as future work.
 
-\subsection{A Bigger Picture (\acs{DE} + \acs{LLLA}) (WIP)}
+\subsection{A Bigger Picture (\acs{DE} + \acs{LLLA})}
 
 One can also choose to combine the quick detection of hallucinations of \acs{LA} with the full uncertainty capability of \acs{DE} and combine them together: \cite{eschenhagen_mixtures_2021} uses a mixture of both \acs{DE} and \acs{LLLA} (\acs{MoLA}) to get better results on multiple image classification benchmarks than \acs{DE}, Multi-\acs{SWAG} and many more.
 
