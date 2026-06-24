@@ -153,6 +153,7 @@ manifold (i.e.\ satisfy the $k$-NN ball condition \eqref{eq:knn_ball_cond}). Rec
 \end{tcolorbox}
 
 Both metrics make no distributional assumptions, in contrast to FID.
+
 Precision and recall are not independent ($\indep$): retaining only the highest-quality generated images improves precision but shrinks the coverage of real modes, reducing recall.
 % This trade-off is visible throughout our filtering experiments and mirrors the
 % quality-diversity trade-off induced by classifier guidance \cite{dhariwal_diffusion_2021}.
@@ -179,7 +180,9 @@ the generated sample to its center. Taking the maximum gives the deepest penetra
     \left\{ \frac{||\phi_r - \mathrm{NN}_k(\phi_r, \boldsymbol{\Phi}_r)||_2}{||\phi_g-\phi_r||_2}\right\}
 \end{align}
 
-where $\boldsymbol\Phi_r^* \subseteq \boldsymbol\Phi_r$ is a filtered subset of real anchors defined below. The score gets bigger as the generated sample $\phi_g$ gets closer to $\mathcal{M}_k(\boldsymbol\Phi_r)$ until $R \ge 1$ and we have an equivalence with $f(\phi_g, \boldsymbol\Phi_r)$ \eqref{eq:f_helper_func_mk} where $f(\phi_g, \boldsymbol{\Phi}_r) = 1 \iff R(\phi_g, \boldsymbol{\Phi}_r) \ge 1$. The ratio $R$ can be seen as a continuous extension of the helper function $f$ \eqref{eq:f_helper_func_mk}.
+where $\boldsymbol\Phi_r^* \subseteq \boldsymbol\Phi_r$ is a filtered subset of real anchors defined below. 
+The score gets bigger as the generated sample $\phi_g$ gets closer to $\mathcal{M}_k(\boldsymbol\Phi_r)$ until $R \ge 1$ at which point we have an equivalence with $f(\phi_g, \boldsymbol\Phi_r)$ \eqref{eq:f_helper_func_mk}: $f(\phi_g, \boldsymbol{\Phi}_r) = 1 \iff R(\phi_g, \boldsymbol{\Phi}_r) \ge 1$. 
+The ratio $R$ can be seen as a continuous extension of the helper function $f$ \eqref{eq:f_helper_func_mk}.
 
 Lastly, one flaw of the k-NN approximation is to assign large hyperspheres to points in sparse regions (low sample density). 
 If a sample happens to fall in such a region, it can lead to a highly inaccurate score $R$. To fix this, instead of taking the $\max$ across all $\phi_r \in \boldsymbol{\Phi}_r$, we create a subset $\boldsymbol{\Phi}_r^*$ by taking $\boldsymbol{\Phi}_r$ and removing all $\phi_r$ that have a hypersphere of radius bigger than the median radius.
@@ -239,13 +242,13 @@ In \cite{jazbec_generative_2025} however, they aim to remove artifacts out of th
 \subsection{Problems with this Framework}
 \label{sub:problems_inception}
 
-Here we list and properly explain all identified problems ranging from the metrics themselves to how they were computed in \cite{jazbec_generative_2025}. This helps to motivate \autoref{ch:hpsv3}, where we define a new metric that is hopefully not affected by those problems.
+Here we list and explain all identified problems ranging from the metrics themselves to how they were computed in \cite{jazbec_generative_2025}. This helps to motivate \autoref{ch:hpsv3}, where we define a new metric that we believe is not affected by those problems.
 
 \paragraph{Inception-V3 Encoder}
 First and foremost, all of these metrics rely on the same embedding space provided by the \texttt{Inception-v3} encoder and this leads to the following issues:
 \begin{itemize}
     \item The FID metric has been criticized for contradicting human judgement, partly attributing the problem to the \texttt{Inception-v3} encoder \parencite{jayasumana_rethinking_2024}; this issue would therefore affect all other Inception-based metrics.
-    \item Using the same encoder for both the Realism and Rarity filtering metric and the \acs{FPR} evaluation metrics leads to a bias that is likely disadvantageous for methods that do not use the \texttt{Inception-v3} encoder, such as Generative Uncertainty.
+    \item Using the same encoder for both the Realism and Rarity filtering metric and the \acs{FPR} evaluation metrics leads to a bias that is likely disadvantageous for methods that do not use the \texttt{Inception-v3} encoder, such as \cite{jazbec_generative_2025} Generative Uncertainty (\acs{GU}).
 \end{itemize}
 
 % \begin{enumerate}
@@ -283,7 +286,7 @@ The effect of sample size $|\boldsymbol\Phi|$ has been studied for both FID \par
 
 \begin{enumerate}
     % \item \boldsymbol{FID}: \cite{jayasumana_rethinking_2024} highlights the 
-    \item The FID computation requires the computation of two covariance matrices $\Sigma_r, \Sigma_g$ of size $2048 \times 2048$, which leads to poor sample efficiency \parencite{jayasumana_rethinking_2024}. \label{enum:fid_critique_sample_efficiency}
+    \item The FID computation requires the computation of two covariance matrices $\Sigma_r, \Sigma_g$ of size $2048 \times 2048$, which leads to poor sample efficiency\footnote{FID needs a very large sample size to become stable with respect to variations of the sample size} \parencite{jayasumana_rethinking_2024}. \label{enum:fid_critique_sample_efficiency}
     \item Because Precision and Recall rely on the k-NN manifold approximation, having a smaller dataset size $|\boldsymbol\Phi|$ implies a lower density of points across the semantic space making the distance to the $k$-th neighbor bigger and therefore the hypersphere associated to each point bigger, it becomes easier for points of each either $\boldsymbol\Phi_{r,g}$ to fall into the manifold associated to the other distribution $\mathcal{M}_k(\boldsymbol\Phi_{g,r})$, artificially increasing the Precision and Recall scores.
 \end{enumerate}
 
