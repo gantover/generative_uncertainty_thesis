@@ -78,7 +78,14 @@
 
 % Custom commands
 \newcommand{\defeq}{\overset{\mathrm{def}}{=\joinrel=}}
-\newcommand{\warning}{{\fontencoding{U}\fontfamily{futs}\selectfont\char 49\relax}}
+% \newcommand{\warning}{{\fontencoding{U}\fontfamily{futs}\selectfont\char 66\relax}}
+% \newcommand*{\TakeFourierOrnament}[1]{{%
+% \fontencoding{U}\fontfamily{futs}\selectfont\char#1}}
+% \newcommand*{\warning}{\TakeFourierOrnament{66}}
+\newcommand\warning{%
+ \makebox[1.4em][c]{%
+ \makebox[0pt][c]{\raisebox{.1em}{\small!}}%
+ \makebox[0pt][c]{\color{red}\Large$\bigtriangleup$}}}%
 
 \renewcommand{\epigraphsize}{\scriptsize}
 

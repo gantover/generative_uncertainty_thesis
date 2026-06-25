@@ -41,3 +41,18 @@ Minor differences can be explained by the ImageNet dataset instance used.
     \caption{Reproduced experiment results}
     \label{fig:classifier_free}
 \end{figure}
+
+\subsection{Problems with the Inception Metrics}
+\label{sub:show_n_inception_problem}
+
+As teased in \autoref{sub:problems_inception}, we now address the effect of reducing $N$. To isolate this effect, we can look at the \texttt{random} baseline which randomly and progressively removes samples from $|\boldsymbol\Phi_g|$. In theory it should stay flat when reducing $N$, but we can clearly see that the FID and Recall metrics rising for the \texttt{random} baseline.
+
+\begin{tcolorbox}[colback=red!10!white,colframe=red!50!black,sharp corners]
+For the remaining of the thesis, before interpreting the results of any filtering method, we will have to take into account the artificial rise in FID and Recall when reducing $N$ by looking at the \texttt{random} baseline first and correcting the results of the filtering method by how much the \texttt{random} baseline has risen.
+\warning We don't believe we can truly isolate the effect of reducing $N$ this way, especially with such a small dataset to begin with, but we believe this gives us a rough idea.
+\end{tcolorbox}
+
+% This is a problem with the Inception metrics themselves, as they are not robust to changes in the number of samples in the generated dataset.
+
+
+% Specifically when looking at the \texttt{random} filtering baseline which randomly and progressively removes samples from $|\boldsymbol\Phi_g|$. Throughout this thesis, we will have to take into account that a rise in FID for instance does not mean that the filtering method does not work, it should always be compared to how much the random baseline (that should ideally be flat) has risen.

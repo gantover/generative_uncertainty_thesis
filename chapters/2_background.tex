@@ -309,8 +309,7 @@ In contrast, Precision evaluates whether generated images fall within the real m
 In \cite{jazbec_generative_2025} however, we fix the size of the real dataset $|\boldsymbol{\Phi}_r| = 50{,}000$ and vary the size of the generated dataset $N = |\boldsymbol\Phi_f| \in [6000,\dots,12000]$. This asymmetry makes precision even less sensitive to $N$ because $\mathcal{M}_k(\boldsymbol\Phi_r)$ is fixed: only the number of generated points changes and most of them reside in the real distribution. Recall however grows even more from it because it measures how well the huge $50{,}000$-point dataset fits into $\mathcal{M}_k(\boldsymbol\Phi_g)$, whose hyperspheres keep growing around the clusters.
 
 \begin{tcolorbox}[colback=red!10!white,colframe=red!50!black,sharp corners]
-This will be confirmed in the reproduced \cite{jazbec_generative_2025} experiment (\autoref{ch:reproduce_adm}).
-Specifically when looking at the \texttt{random} filtering baseline which randomly and progressively removes samples from $|\boldsymbol\Phi_g|$. Throughout this thesis, we will have to take into account that a rise in FID for instance does not mean that the filtering method does not work, it should always be compared to how much the random baseline (that should ideally be flat) has risen.
+We will come back to this issue in \autoref{ch:reproduce_adm} to both illustrate its effect it in practice (with the \cite{jazbec_generative_2025} experiment) and show how take it into account when evaluating filtering methods.
 \end{tcolorbox}
 
 

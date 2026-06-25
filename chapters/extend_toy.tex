@@ -155,14 +155,14 @@ We define ``hallucination'' as a point $\boldsymbol{x}$ for which the distance t
 
 Drawing those buckets in a scatter plot of the filtered samples at the 95th percentile gives us \autoref{fig:where_hallucinations}. We see that the filtered points are actually dominated by \textbf{FP}s (3233 \textbf{FP}s for 44 \textbf{TP}s despite missing 88 \textbf{FN}s). Either Deep Ensemble based uncertainty is really bad at filtering out ``hallucinations'' or it is filtering something more.
 
-This leads us to investigate why those \textbf{FP}s points have such an high uncertainty despite being located so close to a mode and being a seemingly valid sample. \autoref{fig:sample_accross_models} represents a very high uncertainty sample classified as \textbf{FP}. It is shown across the $1+\mathrm{M} = 6$ models. We immediately understand why we get so many FPs, despite each model producing a valid sample with respect to the reference distribution, the same starting noise $z$ lead to generated samples being assigned to different modes, leading to very high uncertainty.
+This leads us to investigate why those \textbf{FP}s points have such an high uncertainty despite being located so close to a mode and being a seemingly valid sample. \autoref{fig:sample_accross_models} represents a very high uncertainty sample classified as \textbf{FP}. It is shown across the $1+\mathrm{M} = 6$ models. We immediately understand why we get so many \textbf{FP}s, despite each model producing a valid sample with respect to the reference distribution, the same starting noise $z$ lead to generated samples being assigned to different modes, leading to very high uncertainty.
 
 \paragraph{Conclusion}
 We can conclude from this experiment that uncertainty is not limited to ``hallucinations'' as we defined them. Uncertainty also targets samples where the model was unsure which mode to assign to.
 % We therefore have to define uncertain points as something different from the current definition of hallucinations we have. Uncertainty is a broader concept and is also targeting starting noise for which the model was unsure which mode to assign to.
 
 Measuring how well generative uncertainty performs on the toy dataset with respect to this broader definition of uncertainty is a much harder task, samples like \autoref{fig:sample_accross_models} are valid for each models taken individually but highly uncertain when comparing the output between models.
-For the remaining of our experiment, we will simply define the Deep Ensemble based Generative Uncertainty as the source of truth for uncertainty. In the next chapter, we compare cheaper ways to get the \acs{MC} ensemble of models against the Deep Ensemble.
+For the remaining of our experiment, we will simply define the Deep Ensemble based Generative Uncertainty as the source of truth for uncertainty. In the next chapter, we compare cheaper ways to get the \acs{MC} ensemble of models against the Deep Ensemble (\acs{DE}).
 
 %%%%%%%%%
 

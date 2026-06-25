@@ -121,6 +121,7 @@ $(N, \mathrm{M}, C_\ell)$ tensor (with $N$ the number of images generated per mo
 Where $\hat{\sigma}^2_{\phi,k}$ is the empirical variance computed from the k-th dimension of the $C_\ell$ sized feature vector across the the $\mathrm{M}$ models outputs.
 
 \subsection{The Experiment}
+\label{sub:internal-enc-abla-exp}
 
 We are going to conduct an ablation to find the best sub-module (\texttt{output\_blocks.i.j} \autoref{tab:adm-unet-decoder}) and timestep $t$ at which to extract the feature maps in order to minimize the \acs{HPS} \acs{AURC} metric. 
 
@@ -207,9 +208,9 @@ By using the internal encoder however, we manage to keep the FID lower during a 
 
 \paragraph{Direct Noise Injection}
 With this chapter, we've not actually fixed the Bayesian Framework, with \autoref{ch:semantic-encoder} we've seen that any encoder could be used with the Direct Noise Injection (\acs{DNI}) Method. It is highly likely that the internal encoder we've just derived in \autoref{ch:using_internal_encoder} can be used with \acs{DNI} and provide similar results as the Bayesian \acs{LLLA} posterior. 
-Although doing so would completely depart from the Bayesian framework, it would still provide valuable uncertainty measurement that are directly linked to the model's training manifold. Testing an internal encoder with \acs{DNI} is left as future work.
+Although doing so would completely depart from the Bayesian framework, it would still provide valuable uncertainty measurement that are directly linked to the model's training manifold. Testing an internal encoder with \acs{DNI} is left as future work. This direction has close analogues emerging in the language-model literature, where perturbing internal representations and reading their dispersion is used to detect hallucinations; we are not aware of an equivalent for diffusion-image generation, which leaves it as genuinely open ground.
 
-Still, Bayesian framework should not be discarded, as it is also likely that heavy approximations made the Bayesian uncertainty signal very weak. Improving the posterior approximation significantly with methods such as \cite{gegenfurtner_reducing_2026} to see if we can get a useful bayesian uncertainty signal back is also left as future work. 
+Still, Bayesian framework should not be discarded, as it is also likely that heavy approximations made the Bayesian uncertainty signal very weak. Improving the posterior approximation significantly with methods such as \cite{gegenfurtner_reducing_2026} or \cite{gupta_quantifying_2026} to see if we can get a useful bayesian uncertainty signal back, strong enough to survive the encoder bottleneck, is also left as future work.
 
 A deeper investigation of the relation between what \acs{DNI} actually measures (the encoder's local sensitivity to perturbations around the model's training manifold) and what the Bayesian posterior captures is also warranted. In particular, it remains unclear how this sensitivity signal relates to genuine weight-space uncertainty, both within a single basin (\acs{LLLA}) and across multiple basins (\acs{DE}), as studied on the Toy model in \autoref{ch:toy_exp_posterior}. Clarifying whether these quantities coincide or merely correlate would determine to what extent \acs{DNI} can stand in for the far more expensive Bayesian framework, and is left as future work.
 
@@ -226,3 +227,29 @@ First, we've not measured the correlation between the uncertainty measurement ta
 Then, we've used a rather simple average pooling of $8\times8, 16 \times 16, \dots$ feature maps to get our feature vector. Doing so loses a lot of information and is probably not be the best method.
 
 Finally, results suggested that $t=0$ would be an even ``better'' timestep at which to compute uncertainty w.r.t. the \acs{HPS} \acs{AURC} metric.
+
+\subsection{Relation to Prior Work}
+\label{sec:gu_prior_work}
+
+The principle behind the \acs{DNI} and the internal encoder sits close to several existing lines of work.
+
+% The internal-encoder direction proposed above, and its pairing with \acs{DNI}, sits close to several existing lines of work. 
+
+% We position both here, as a continuation of the \acs{DNI} experiment of \autoref{ch:semantic-encoder}, since the relevant neighbors span that chapter and this one. In each case the novelty lies less in the mechanism than in how it is used.
+
+\paragraph{Perturbation and variance as an uncertainty signal}
+The \acs{DNI} mechanism, perturb an input and read the variance or entropy of a downstream representation, is a long-standing idea. It underlies test-time augmentation, where inputs are perturbed at inference and the spread of the resulting predictions is taken as an uncertainty estimate \parencite{wang_aleatoric_2019}, originally for discriminative tasks rather than generative-sample quality. 
+
+Closer to our domain, \cite{vita_diffusion_2024} filter diffusion samples using the variance of the denoising scores under a diffusion-specific perturbation. The crucial distinction from \acs{DNI} lies in the representation in which the variance is read: \cite{vita_diffusion_2024} measure it in \textit{score space}, the U-Net's full image-dimensional noise prediction, and never use the network's internal feature activations, whereas \acs{DNI} reads it in a low-dimensional semantic-embedding space (an external encoder in \autoref{ch:semantic-encoder} or the model's own internal features in this chapter).
+
+It should noted that \cite{vita_diffusion_2024} Aleatoric Uncertainty method was tried in \cite{jazbec_generative_2025} \acs{ADM} experiment and was found to be far less effective than the \acs{GU} method (and by extension our internal encoder method with \acs{LLLA}) on the \acs{FPR} metrics.
+
+\paragraph{Internal diffusion features as a representation}
+Using internal layers of a diffusion model as semantic representations is not a new idea \parencite{baranchuk_label-efficient_2022} argue that those that those layers can ``potentially be used as image representations for downstream tasks'' in their case they demonstrate their claim with a segmentation downstream task. 
+
+More recently, \cite{luo_diffusion_2024} go over the same idea but also explore how features spread across layers and timesteps. In our \autoref{sub:internal-enc-abla-exp} ablation, we only try to find the best combo but leave the question of whether multiple layers/timesteps can be combined for future work.
+
+
+% The internal encoder derived in this chapter builds on a now-large body of work showing that a diffusion U-Net's intermediate activations form a rich semantic representation, exploited for segmentation, semantic correspondence, and other discriminative downstream tasks.
+% TODO add citations: Baranchuk et al. (DDPM-Seg), Tang et al. (DIFT, arXiv 2306.03881), Luo et al. (Diffusion Hyperfeatures, arXiv 2305.14334), survey arXiv 2407.00783
+% What distinguishes our use is the task: rather than transferring these features to an external discriminative problem on real images, we turn them inward, using the model's own representation to score the quality and off-manifold instability of its \textit{own} generations. Notably, an intrinsic feature extractor of this kind was itself flagged as future work by \cite{jazbec_generative_2025}, so our internal encoder is best read as an attributed extension of their framework rather than a departure from it.
