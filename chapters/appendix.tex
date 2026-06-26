@@ -85,14 +85,30 @@
 
 \appendix
 
-\chapter{Mathematical Foundations of Diffusion Models}
+\chapter{Theoretical Background}
+
+\section{Interpretation for Precision and Recall Inflation Phenomenon}
+\label{app:fpr_inflation}
+
+\paragraph{Recall more affected than Precision}
+One plausible explanation for this stems from the spatial differences between $\mathcal{M}_k(\boldsymbol\Phi_r)$ and $\mathcal{M}_k(\boldsymbol\Phi_g)$. 
+
+\emph{Recall} evaluates whether real images fall within the generated manifold.
+Generative models generally cover a smaller fraction of the true data distribution\footnote{This is also a motivation for the creation of metrics such as Precision and Recall}. Because generated samples are packed into a smaller subset of the feature space, lowering the sample size forces the $k$-NN boundaries of these dense clusters to grow. Since this generated manifold sits within the broader real distribution, expanding its boundaries rapidly engulfs peripheral real points, causing \emph{Recall} to spike artificially. 
+
+In contrast, \emph{Precision} evaluates whether generated images fall within the real manifold. Because models tend to generate samples in safe, well-represented regions, most generated points already reside deep inside the real distribution. Therefore, when the broad real manifold expands outward into empty space due to sparsity, it captures very few new generated points, resulting in a much flatter growth curve for \emph{Precision}.
+
+\paragraph{Asymmetry in sample sizes}
+In \cite{jazbec_generative_2025}, we fix the size of the real dataset $|\boldsymbol{\Phi}_r| = 50{,}000$ and vary the size of the generated dataset $N = |\boldsymbol\Phi_f| \in [6000,\dots,12000]$. This asymmetry makes \emph{Precision} even less sensitive to $N$ because $\mathcal{M}_k(\boldsymbol\Phi_r)$ is fixed: only the number of generated points changes and most of them reside in the real distribution. \emph{Recall} however grows even more from it because it measures how well the huge $50{,}000$-point dataset fits into $\mathcal{M}_k(\boldsymbol\Phi_g)$, whose hyperspheres keep growing around the clusters.
+
+\section{Mathematical Foundations of Diffusion Models}
 \label{app:diffusion_math}
 
-\vspace{1cm}
+% \vspace{1cm}
 
 This appendix provides the exhaustive mathematical proofs and derivations for the discrete-time diffusion framework outlined conceptually in \autoref{sec:bg_diffusion}. The forward-process and variational derivations follow \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}, and the generalized sampler follows \textcite{song_denoising_2022}.
 
-\section{The Forward Process and Reparameterization}
+\subsection{The Forward Process and Reparameterization}
 \label{app:diffusion_forward}
 
 Following \textcite{ho_denoising_2020}, the single-step forward transition is defined as a Gaussian distribution centered around the scaled previous timestep:
@@ -116,7 +132,7 @@ By recursively applying the reparameterization trick and leveraging the property
 \end{align}
 Equivalently, the marginal is $q(x_t | x_0) = \mathcal{N}(x_t; \sqrt{\overline{\alpha}_t}\,x_0, (1-\overline{\alpha}_t) I)$, which allows us to sample $x_t$ directly from $x_0$ without iterating through intermediate steps \parencite{ho_denoising_2020}.
 
-\section{Derivation of the Variational Lower Bound (VLB)}
+\subsection{Derivation of the Variational Lower Bound (VLB)}
 \label{app:diffusion_vlb}
 
 This derivation follows \textcite{sohl2015thermo} and \textcite{ho_denoising_2020}. To optimize the neural network $p_\theta$, we must construct a tractable upper bound on the negative log-likelihood of the data. By introducing the forward process $q(x_{1:T}|x_0)$ and applying Jensen's inequality, we obtain the VLB:
@@ -172,7 +188,7 @@ where the three groups of terms are
 \end{align}
 The prior-matching term $L_T$ carries no learnable parameters (the forward process is fixed), and is therefore constant during training. This is the variance-reduced decomposition of \textcite{ho_denoising_2020}, in which every KL term compares two Gaussians and can be evaluated in closed form.
 
-\section{Analytical Solution of the KL Divergence}
+\subsection{Analytical Solution of the KL Divergence}
 \label{app:diffusion_kl}
 
 When conditioned on the original uncorrupted image $x_0$, the true reverse step $q(x_{t-1}|x_t, x_0)$ within $L_{t-1}$ becomes a tractable Gaussian distribution $\mathcal{N}(x_{t-1}; \tilde{\mu}_t(x_t, x_0), \tilde{\beta}_t I)$. The analytical mean and variance of this distribution are derived as \parencite{ho_denoising_2020}:
@@ -210,7 +226,7 @@ Substituting this back into $L_{t-1}$ simplifies the exact KL divergence into th
 \end{equation}
 As noted in \autoref{sec:bg_diffusion}, discarding the time-dependent weights yields the highly successful $\mathcal{L}_{simple}$ objective used in modern implementations.
 
-\section{Generalized Sampling: From DDPM to DDIM}
+\subsection{Generalized Sampling: From DDPM to DDIM}
 \label{app:diffusion_sampling}
 
 \autoref{sec:bg_diffusion} introduces the DDPM and DDIM samplers conceptually; here we derive the generalized reverse step of \textcite{song_denoising_2022} from which both follow as special cases.
@@ -222,7 +238,7 @@ Concretely, the reverse-conditional is taken to be the Gaussian
 \label{eq:app_reverse_conditional}
     q_\sigma(x_{t-1}|x_t, x_0) = \mathcal{N}\!\left( x_{t-1};\; \sqrt{\overline{\alpha}_{t-1}}\,x_0 + \sqrt{1-\overline{\alpha}_{t-1}-\sigma_t^2}\;\frac{x_t - \sqrt{\overline{\alpha}_t}\,x_0}{\sqrt{1-\overline{\alpha}_t}},\; \sigma_t^2 I \right).
 \end{equation}
-Its mean is engineered (their Lemma~1) so that the marginals remain \emph{identical} to those of DDPM, $q_\sigma(x_t|x_0) = \mathcal{N}(x_t; \sqrt{\overline{\alpha}_t}\,x_0, (1-\overline{\alpha}_t) I)$ for every $\sigma$   which is precisely why the network $\epsilon_\theta$ trained under the DDPM objective can be reused unchanged.
+Its mean is engineered (their Lemma~1) so that the marginals remain \emph{identical} to those of \acs{DDPM}, $q_\sigma(x_t|x_0) = \mathcal{N}(x_t; \sqrt{\overline{\alpha}_t}\,x_0, (1-\overline{\alpha}_t) I)$ for every $\sigma$, which is precisely why the network $\epsilon_\theta$ trained under the \acs{DDPM} objective can be reused unchanged.
 
 At inference time the clean sample $x_0$ is unavailable. Given $x_t$, the trained network predicts the noise and inverts \autoref{eq:forward_reparam} to obtain an estimate of $x_0$,
 \begin{equation}
@@ -257,7 +273,7 @@ The choice of $\sigma_t$ recovers the two samplers of interest:
     \end{equation}
 \end{itemize}
 
-Because the DDIM update \eqref{eq:app_ddim_deterministic} contains no stochasticity, \textcite{song_denoising_2022} show it is the Euler discretization of an ordinary differential equation   the deterministic regime used for the \acs{ADM} experiments in \autoref{ch:reproduce_adm}.
+% Because the DDIM update \eqref{eq:app_ddim_deterministic} contains no stochasticity, \textcite{song_denoising_2022} show it is the Euler discretization of an ordinary differential equation   the deterministic regime used for the \acs{ADM} experiments in \autoref{ch:reproduce_adm}.
 
 
 % \chapter{Internal UNET Encoder}

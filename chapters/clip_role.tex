@@ -4,14 +4,15 @@
 
 \section{Motivation} 
 
-In their implementation of generative uncertainty, \parencite{jazbec_generative_2025} added a semantic encoder to avoid computing uncertainty in a pixel space that is overly sensitive to minor pixel-level details. 
+In their implementation of generative uncertainty, \cite{jazbec_generative_2025} added a semantic encoder to avoid computing uncertainty in a pixel space that is overly sensitive to minor pixel-level details. 
 
 \cite{jazbec_generative_2025} stated a theoretical gap to fill with regard to how this integrates into the Bayesian framework. 
-Their conclusion was that the semantic encoder made the uncertainty measure possible, but they have not measured the role the approximated Bayesian framework played in their uncertainty metric. 
+Their conclusion was that the semantic encoder made the uncertainty measure possible, but they have not measured the role it played in the overall performance of the \acs{GU} metric compared to the role the approximated Bayesian framework played.
+% the approximated Bayesian framework played in their uncertainty metric. 
 
 \section{Hypothesis}
 
-This leaves the door open to the question: ``What if the semantic encoder actually contains most of the uncertainty evaluation capability?'' We hypothesize that uncertain images are very unstable in the semantic space: a slight change in an uncertain image leads to a large change in semantic space. We could therefore make random changes to the images and get a high uncertainty score if the starting image was already in an unstable region of the semantic encoder, making the Laplace Approximation unnecessary.
+This leaves the door open to the question: ``What if the semantic encoder actually contains most of the uncertainty evaluation capability?'' We hypothesize that uncertain images are very unstable in the semantic space: a slight change in an uncertain image leads to a large change in semantic space. We could therefore make random changes to the images and get a high uncertainty score if the starting image was already in an unstable region of the semantic encoder, making the Bayesian framework unnecessary.
 
 \section{Experiment}
 
@@ -22,11 +23,11 @@ This leaves the door open to the question: ``What if the semantic encoder actual
     \label{fig:dni_pipeline}
 \end{figure}
 
-To test this hypothesis, we conduct an experiment where instead of using M models from the Laplace Approximated posterior distribution, we entirely skip the M models and use the generated image from the base model and add random noise to the image to create M additional images, we call this direct noise injection (\acs{DNI}). We can then use the same exact uncertainty score evaluation pipeline as before and measure how well it performs on the \acs{FPR} and \acs{HPS} metrics. The modified uncertainty calculation pipeline is illustrated on \autoref{fig:dni_pipeline}.
+To test this hypothesis, we conduct an experiment where instead of using M models from the Laplace Approximated posterior distribution, we entirely skip the M models and use the generated image from the base model and add random noise to the image to create M additional images, we call this Direct Noise Injection (\acs{DNI}). We can then use the same exact uncertainty score evaluation pipeline as before and measure how well it performs on the \acs{FPR} and \acs{HPS} metrics. The modified uncertainty calculation pipeline is illustrated on \autoref{fig:dni_pipeline}.
 
 \section{Results Analysis}
 
-\paragraph{HPSv3 Metric} On \autoref{fig:la_role_hps} we can barely differentiate the performance of the LLLA from the DNI (\acs{AURC}: \acs{LLLA} $= 12.84$ vs.\ \acs{DNI} $= 12.82$).
+\paragraph{HPSv3 Metric} On \autoref{fig:la_role_hps} we can barely differentiate the performance of the \acs{LLLA} from the \acs{DNI} (\acs{AURC}: \acs{LLLA} $= 12.84$ vs. \acs{DNI} $= 12.82$).
 
 \begin{figure}[!htbp]
     \centering
@@ -58,15 +59,15 @@ The correlation plot \autoref{fig:la_role_corr} however shows that despite both 
 \section{Formalizing the Method}
 \label{sec:formalize_dni_method}
 
-How can such a simple method perform this close to the much more complex and expensive Laplace approximation method?
+How can such a simple method perform this close to the much more complex and expensive Bayesian \acs{LA} method?
 
-By bypassing the posterior entirely (\autoref{fig:dni_pipeline}), we completely departed from Bayesian theory here, we are not analyzing the model's knowledge but rather the encoder's confidence and proving that it's enough to filter out bad images.
+By bypassing the posterior entirely (\autoref{fig:dni_pipeline}), we completely departed from Bayesian theory. Here, we are not analyzing the model's knowledge but rather the encoder's confidence and proving that it's enough to filter out bad images.
 
 We will now formalize the mathematical framework behind this method to explain its success.
 
 \subsection{Formalizing the Post-Hoc Perturbation Framework}
 
-Let $x \in \mathbb{R}^D$ be the output image generated by a the base model, and let $c_\phi: \mathbb{R}^D \rightarrow \mathbb{R}^K$ denote the semantic encoder (e.g., \acs{CLIP}) parameterized by $\phi$, which maps the high-dimensional pixel space into a $K$-dimensional semantic space. 
+Let $x \in \mathbb{R}^D$ be the output image generated by the base model, and let $c_\phi: \mathbb{R}^D \rightarrow \mathbb{R}^K$ denote the external semantic encoder (e.g., \acs{CLIP}) parameterized by $\phi$, which maps the high-dimensional pixel space into a $K$-dimensional semantic space. 
 
 Instead of relying on the very expensive posterior predictive distribution of \parencite{jazbec_generative_2025}, we bypass the Bayesian framework entirely. We define a local pixel-space neighborhood around the final generated output $x$ of the base model by injecting isotropic Gaussian noise $\epsilon$:
 
@@ -83,7 +84,7 @@ Let $\sigma_{\tilde{e},i}^2$ be the variance of the $i$-th semantic dimension. T
 \end{equation}
 
 \begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
-\warning here we are first working with $\tilde{e}$ as a random variable to show analytically the relationship between the uncertainty and the Jacobian of the encoder. To finalize the link with our experiment, we later prove that we can approximate the quantities associated to $\tilde{e}$ (such as the diagonal terms of its covariance matrix) with Monte Carlo.
+\warning here we are first working with $\tilde{e}$ as a random variable to show analytically the relationship between the uncertainty and the Jacobian of the encoder. To finalize the link with our experiment, we later prove that we can approximate the quantities associated with $\tilde{e}$ (such as the diagonal terms of its covariance matrix) with Monte Carlo.
 \end{tcolorbox}
 
 \subsection{The Jacobian Norm and Entropy Explosion}
@@ -122,15 +123,15 @@ Substituting this into our entropy formulation reveals the direct theoretical li
 
 \subsection{Monte Carlo Approximation}
 
-The missing link to match our experiment to this mathematical framework is the Monte Carlo approximation of the variance terms $\sigma^2_{\tilde{e},i}$ by going from the random variable space $\tilde{x}$ to a fixed number of samples $\tilde{x}_m$ $m \in \{0,\dots,M\}$ (With $x_0$ the base model output and $x_{m\leq1}$ the noise perturbed samples). We can approximate those terms as follows:
+The missing link to match our experiment to this mathematical framework is the Monte Carlo approximation of the variance terms $\sigma^2_{\tilde{e},i}$ by going from the random variable space $\tilde{x}$ to a fixed number of samples $\tilde{x}_m$ $m \in \{0,\dots,\text{M}\}$ (with $\tilde{x}_0$=$x_0$ the base model output and $\tilde{x}_{m\geq1}$ the noise perturbed samples). We can approximate those terms as follows:
 
 \begin{align}
-\sigma_{\tilde{e},i}^2 \simeq \frac{1}{M-1} \sum_{m=0}^{M} (\tilde{e}_{m,i} - \bar{e}_i)^2
+\sigma_{\tilde{e},i}^2 \simeq \frac{1}{\text{M}} \sum_{m=0}^{\text{M}} (\tilde{e}_{m,i} - \bar{e}_i)^2
 \end{align}
 
-Where $\bar{e}_i = \frac{1}{M} \sum^M_{m=0} \tilde{e}_{m,i}$
+Here we divide by $\text{M}$ instead of $\text{M}+1$ to have an unbiased estimator of the variance. And $\bar{e}_i = \frac{1}{\text{M}+1} \sum^{\text{M}}_{m=0} \tilde{e}_{m,i}$
 
-We can finally say \autoref{eq:jacobian_uncertainty} proves that the entropy score we extract from the perturbed ensemble is intrinsically driven by the logarithmic sum of the squared gradients (the localized Jacobian norms) of the semantic encoder. We see next why this is important.
+We can finally say that \autoref{eq:jacobian_uncertainty} proves that the entropy score we extract from the perturbed ensemble is intrinsically driven by the logarithmic sum of the squared gradients (the localized Jacobian norms) of the semantic encoder. We see next why this is important.
 
 \subsection{Generative Failure as Off-Manifold Instability}
 
@@ -138,11 +139,16 @@ The connection to the Jacobian dictates our capability to detect generative fail
 
 If a diffusion model then generates a high-quality, confident image $x$, it is highly likely that this image lives in $\mathcal{M}$ where the local Lipschitz constant of $c_\phi$ is small \parencite{novak_sensitivity_2018}. The gradients $\|\nabla c_{\phi, i}(x)\|_2^2$ are bounded by a small value, resulting in small variances $\sigma_{\tilde{e},i}^2$, and consequently, a low, stable entropy $\mathcal{U}(x)$.
 
-Conversely, if the generative model fails and produces an image with severe structural artifacts, the sample falls out-of-distribution ($x \notin \mathcal{M}$). In these off-manifold regions, the encoder becomes highly non-linear and sensitive \cite{novak_sensitivity_2018}, causing the local gradient norms $\|\nabla c_{\phi, i}(x)\|_2^2$ to explode. Because our formulation shows that the dimensional variance $\sigma_{\tilde{e},i}^2$ scales directly with these exploding gradients, the resulting entropy $\mathcal{U}(x)$ undergoes a massive increase.
+Conversely, if the generative model fails and produces an image with severe structural artifacts, the sample falls out-of-distribution ($x \notin \mathcal{M}$). In these off-manifold regions, the encoder becomes highly non-linear and sensitive \parencite{novak_sensitivity_2018}, causing the local gradient norms $\|\nabla c_{\phi, i}(x)\|_2^2$ to explode. Because our formulation shows that the dimensional variance $\sigma_{\tilde{e},i}^2$ scales directly with these exploding gradients, the resulting entropy $\mathcal{U}(x)$ undergoes a massive increase.
 
-Therefore, estimating entropy via post-hoc pixel perturbations successfully isolates the exact same off-manifold instability as complex weight-space posteriors, justifying its competitive performance.
+% Therefore, estimating entropy via post-hoc pixel perturbations successfully isolates the exact same off-manifold instability as complex weight-space posteriors, justifying its competitive performance.
 
-This perturbation-and-variance recipe is not itself new. It mirrors test-time augmentation (\acs{TTA}), where inputs are perturbed at inference and the spread of the resulting predictions is read as an uncertainty estimate \parencite{wang_aleatoric_2019}, and it is close in spirit to \cite{vita_diffusion_2024}, who filter diffusion samples using the variance of the denoising scores under perturbation. \cite{jazbec_generative_2025} however tested the Aleatoric Uncertainty method of \cite{vita_diffusion_2024} and found it to be ineffective on the \acs{FPR} metrics.
+% This perturbation-and-variance recipe is not itself new. It mirrors test-time augmentation (\acs{TTA}), where inputs are perturbed at inference and the spread of the resulting predictions is read as an uncertainty estimate \parencite{wang_aleatoric_2019}, and it is close in spirit to \cite{vita_diffusion_2024}, who filter diffusion samples using the variance of the denoising scores under perturbation. \cite{jazbec_generative_2025} however tested the Aleatoric Uncertainty method of \cite{vita_diffusion_2024} and found it to be ineffective on the \acs{FPR} metrics.
+
+\section{Relation to Prior Work}
+
+The \acs{DNI} mechanism, perturb an input and read the variance or entropy of a downstream representation, is a long-standing idea. It underlies test-time augmentation (\acs{TTA}), where inputs are perturbed at inference and the spread of the resulting predictions is taken as an uncertainty estimate \parencite{wang_aleatoric_2019}, originally for discriminative tasks rather than generative-sample quality. 
+% we are not aware of an equivalent for diffusion-image generation, which leaves the internal-encoder direction as genuinely open ground.
 
 \section{Bayesian Model Over-Approximation}
 \label{sec:bayesian-model-over-approx}
@@ -155,18 +161,25 @@ The correlation plot and Pearson coefficient $r=0.532$ (\autoref{fig:la_role_cor
 \paragraph{Bayesian Uncertainty is Valuable}
 It is possible that a proper, more accurate Bayesian approximation, akin to what \cite{gegenfurtner_reducing_2026} did, would provide an uncertainty signal strong enough to go through the encoder and still provide value.
 
-But we might not even need a more accurate Bayesian approximation. In the context of a Toy model that outputs in 2D space and therefore doesn't need a semantic encoder, we show in \autoref{ch:toy_exp_posterior} that a simple \acs{LLLA} can already provide a very strong uncertainty signal that is enough to filter out OOD samples. The only difference between the \acs{ADM} \acs{LLLA} and the \textit{Toy Model} \acs{LLLA} for the posterior is that the former uses only 1\% of the training data to compute the approximation while the latter uses the full training set (\autoref{sub:gu_th_toy_model_posterior_approximation}). The problem with the current \acs{ADM} \acs{LLLA} could be that 1\% is not enough or that the \acs{LLLA} is too simple for the complexity of the \acs{ADM} compared to the significantly simpler \textit{Toy Model} or other reasons that all need further investigation as future work.
+But we might not even need a more accurate Bayesian approximation. In the context of a \emph{Toy model} that outputs in 2D space and therefore doesn't need a semantic encoder, we show in \autoref{ch:toy_exp_posterior} that a simple \acs{LLLA} can already provide a very strong uncertainty signal that is enough to filter out OOD samples. The only difference between the \acs{ADM} \acs{LLLA} and the \textit{Toy Model} \acs{LLLA} for the posterior is that the former uses only 1\% of the training data to compute the approximation while the latter uses the full training set (\autoref{sub:gu_th_toy_model_posterior_approximation}). The problem with the current \acs{ADM} \acs{LLLA} pipeline could be:
+\begin{itemize}
+    \item That 1\% is not enough or alters the scale of the covariance matrix in an undesirable way (\autoref{sec:bg_gu_further_approx})
+    \item \acs{LLLA} is too simple for the complexity of the \acs{ADM} compared to the significantly simpler \textit{Toy Model}
+    \item As \autoref{ch:using_internal_encoder} will suggest, the external encoder is not able to understand the structural changes made by the Bayesian framework in the generated images and therefore performs the same when fed with simple noise perturbations instead.
+    \item Or other reasons that all need further investigation as future work.
+\end{itemize}
 
 % But in the context of the \textit{Toy Model} (\autoref{ch:toy_exp_posterior}) we prove that the \acs{LLLA} by itself (without a semantic encoder) is highly effective at filtering out \acs{OOD} samples provided we done a proper regularization and scaling of that posterior approximation.
 
 % The only difference between the \acs{ADM} \acs{LLLA} and \textit{Toy Model} \acs{LLLA} is the 
 
 
+
 \section{Conclusion}
 
-We've shown that \acs{DNI} gets very close to the results of \cite{jazbec_generative_2025}, and the formalization and prior-work discussion above explain why: a known perturbation-and-variance mechanism, applied through the encoder, suffices.
-
-We can however no longer talk about Generative Uncertainty with a method that bypasses the whole Bayesian framework and does not care about the generative model itself. 
+We've shown that \acs{DNI} gets very close to the results of \cite{jazbec_generative_2025} and found a plausible explanation for why this is the case.
+%  and the formalization and prior-work discussion above explain why: a known perturbation-and-variance mechanism, applied through the encoder, suffices.
+We can however no longer talk about Generative Uncertainty with a method that bypasses the whole Bayesian framework and does not consider the uncertainty of the generative model itself. 
 
 Regardless of whether the heavily approximated Bayesian framework provides any value compared to simply using random noise, using an external encoder trained on a different dataset than the one used to train the actual diffusion model does not make sense when we want to properly isolate the uncertainty of the diffusion model itself.
-The \acs{ADM} needs an alternative to the external semantic encoder to allow for an uncontaminated measurement of its uncertainty and we explore this in the next chapter (\autoref{ch:using_internal_encoder}).
+The \acs{ADM} needs an alternative to the external semantic \acs{CLIP} encoder to allow for an uncontaminated measurement of its uncertainty and we explore this in the next chapter (\autoref{ch:using_internal_encoder}).

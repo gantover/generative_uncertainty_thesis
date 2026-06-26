@@ -2,30 +2,30 @@
 \label{ch:hpsv3}
 
 
-\cite{jazbec_generative_2025} has relied on the \acs{FPR} (FID, Precision and Recall) metrics to evaluate the performance of generative uncertainty against other baselines such as Realism, Rarity and BayesDiff \parencite{kou_bayesdiff_2024}.
-While the \acs{FPR} metrics are a good starting point in the field of natural images, we provide an extensive list of its problems in \autoref{sub:problems_inception}. Those problems motivated the need for a new independent metric that align better with human preferences and can be computed on single images at a time.
+\cite{jazbec_generative_2025} has relied on the \acs{FPR} (\acs{FID}, \emph{Precision} and \emph{Recall}) metrics to evaluate the performance of \acs{GU} against other baselines such as \emph{Realism}, \emph{Rarity} and \emph{BayesDiff} \parencite{kou_bayesdiff_2024}.
+While the \acs{FPR} metrics are a good starting point in the field of natural images, we provide an extensive list of its problems in \autoref{sub:problems_inception}. Those problems motivated the need for a new independent metric that aligns better with human preferences and can be computed on single images at a time.
 
 \section{Human Preference Score v3 (HPSv3)}
 
-If the idea of generative uncertainty on natural images is to detect hallucinations, supposing that humans are good judges at flagging hallucinations as bad images (lower scores) and normal looking images as high scores, an \acs{HPS} should align well with generative uncertainty.
+If the idea of generative uncertainty on natural images is to detect hallucinations, supposing that humans are good judges at flagging hallucinations as bad images (lower scores) and normal looking images as high scores, a Human Preference Score (\acs{HPS}) should align well with what we want \acs{GU} to be.
 It should be noted however that part of the human score is also attributed to how pleasant it is to look at the image, which is not what hallucinations are about, we therefore do not expect a perfect correlation.
 
-For this experiment, we went with the HPSv3 score \parencite{ma_hpsv3_2025}, it supports both high quality and low quality pictures which is essential for our low quality 128x128 ADM model.
+For this experiment, we went with the HPSv3 score \parencite{ma_hpsv3_2025}, it supports both high quality and low quality pictures which is essential for our low quality 128x128 \acs{ADM}.
 
-The HPSv3 score however is built to judge how much a text description matches an image. The \acs{ADM} model on the other hand is built to generate class conditioned images such as dog, flower,... To make the HPSv3 score work with this setup we just use the following text description for each image: ``\texttt{a high quality photo of a [class\_name]}''
+The HPSv3 score however is built to judge how much a text description matches an image. The \acs{ADM} on the other hand is built to generate class conditioned images such as dog, flower,... To make the HPSv3 score work with this setup we just use the following text description for each image: ``\texttt{a high quality photo of a [class\_name]}''
 
 \section{Measuring HPSv3 Performance on FID, Precision, Recall}
 
-We can first use HPSv3 as a filtering metric and compare it to the other usual baseline (Realism, Rarity, \acs{GU}) on the \acs{FPR} metrics.
+We start by using HPSv3 as a filtering metric to compare it to the other usual baseline (\emph{Realism}, \emph{Rarity}, \acs{GU} (LLLA)) on the \acs{FPR} metrics.
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/hps/fpr.png}
-    \caption{Comparison of performance of different filtering methods on FID, Precision, Recall. \warning, we are using new colors here}
+    \caption{Comparison of performance of different filtering methods on the \acs{FPR} metrics. \warning we are using new colors here.}
     \label{fig:hps_fpr}
 \end{figure}
 
-We can see on \autoref{fig:hps_fpr} that HPSv3 actually outperforms Generative Uncertainty \acs{GU} (LLLA) on FID and Precision at the cost of a lower Recall. This can at least motivate that the HPSv3 metric is compatible with what \cite{jazbec_generative_2025} \acs{GU} tries to measure and since it seem to mostly outperform \acs{GU}, it can serve as a standalone metric, oracle to say judge how well a filtering metric is improving the ``true'' visual quality of the dataset as perceived by humans.
+We can see on \autoref{fig:hps_fpr} that HPSv3 actually outperforms Generative Uncertainty \acs{GU} (LLLA) on FID and Precision at the cost of a lower Recall. This can at least motivate that the HPSv3 metric is compatible with what \cite{jazbec_generative_2025} \acs{GU} tries to measure and since it seem to mostly outperform \acs{GU}, it can serve as a standalone metric: an oracle to judge how well a filtering metric is improving the ``true'' visual quality of the dataset as perceived by humans.
 
 \section{Using HPSv3 as a Standalone Evaluation Metric}
 
@@ -37,13 +37,13 @@ We first define the error $\mathcal{E}$ as
 % \text{avg error} = \sum_{i \in \{j | m(j) <\}} (\max(\mathrm{hpsv3}_{i}) - \mathrm{hpsv3}_{i})
 \end{equation}
 With $D_{gen}$ being the dataset of generated samples (images) and $i,j$ being samples drawn from $D_{gen}$.
-The bigger the error $\mathcal{E}$ of a sample, the lower it's hpsv3 score.
+% The bigger the error $\mathcal{E}$ of a sample $i$, the lower it's hpsv3 score.
 
 \begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
-It was later observed that using the maximum value of the hpsv3 metric across a single generated dataset as anchor point for the error metric is very unstable across different generated datasets (obtained instance by changing the random seed). In this thesis we never compare hpsv3 metrics results across different generated datasets.
+It was later observed that using the maximum value of the hpsv3 metric across a single generated dataset as anchor point for the error metric is very unstable across different generated datasets (obtained for instance by changing the random seed). In this thesis we never compare hpsv3 metrics results across different generated datasets.
 \end{tcolorbox}
 
-We are once again using a rejection rate $r$ which is the percentage of images (performing the worse on a metric) that we filter out.
+We are using a rejection rate $r$ which is the percentage of images (performing the worst on a metric) out of the generated dataset that we filter out.
 To measure how well the filtering works with respect to hpsv3, we compute the average error $\overline{\mathcal{E}}$ across the remaining samples at each $r$ during the filtering.
 
 Additionally, to summarize the rejection curve with a single number, we define the \acs{AURC} (Area Under the Rejection Curve):
@@ -54,12 +54,20 @@ Additionally, to summarize the rejection curve with a single number, we define t
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/hps/rejection_curve.png}
-    \caption{Comparison of how close \acs{GU}, Realism, Recall manage to get to HPSv3.}
+    \caption{Comparison of how close \acs{GU}, \emph{Realism}, \emph{Rarity} manage to get to HPSv3 filtering.}
     \label{fig:hps_rejection_curve}
 \end{figure}
 
 As we can see on \autoref{fig:hps_rejection_curve}, \acs{GU} performs best at first and later gets outperformed by Rarity. 
-% It is worth noting however that most images generated from ADM being of low perceptual, we should be less interested of what happens at higher rejection rates.
+
+\begin{tcolorbox}[colback=orange!10!white,colframe=orange!50!black,sharp corners]
+We can also observe that the \texttt{random} baseline is now flat (not inflating when reducing the number of samples), which makes the metric easier to interpret and more reliable than the \acs{FPR} metrics (\autoref{sub:show_n_inception_problem}).
+\end{tcolorbox}
+
+\subsection{Additional Advantage of HPSv3 Evaluation Metric}
+\label{sub:adv_hps_eval_speed}
+    
+\acs{FPR} metrics need an explicit comparison of a huge batches of images with a huge subset of a reference dataset at regular intervals of filtering $(12000, 11000,\dots, 6000)$ all requiring costly manifold approximations. \acs{HPS} however simply sums the precomputed \acs{HPS} error scores across the remaining batch of images which is much more efficient, allowing to compute the \acs{HPS} rejection curve at a per sample granularity $(12000, 11999, \dots, \boldsymbol{0})$ in less than a second whereas the \acs{FPR} metrics described above can easily take 20 minutes to compute\footnote{Computation time taken on a DTU \texttt{Tesla V100} HPC node with a single core taken from a \texttt{Intel Xeon Processor 2650v4} or similar}, making some later (\autoref{sub:internal-enc-abla-exp}) ablations experiments almost impossible to run.
 
 \section{Conclusion}
 \texttt{HPSv3} proved to be a capable filtering metric, motivating its use as an evaluation metric on top of the \acs{FPR} set of metrics to have an additional judgment of the filtering baselines that does not have the flaws from \acs{FPR} (\autoref{sub:problems_inception}). 

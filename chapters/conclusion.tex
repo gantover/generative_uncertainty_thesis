@@ -1,67 +1,155 @@
 \chapter{Conclusion}
 \label{ch:conclusion}
 
-This thesis set out to formalize, validate, and extend the Generative Uncertainty (\acs{GU}) framework of \cite{jazbec_generative_2025}. But asking the question of what \acs{GU} actually measures changed the direction of the thesis into investigating the role of the semantic encoder.
 
-% What began as an effort to tighten its theoretical foundations and push its empirical results further turned into a more basic question: \textit{what does \acs{GU} actually measure?} The answer reframes the whole framework, and it is the thread that runs through this thesis and expands it in a new direction.
+\section{Discussion and Contributions}
 
-\section{Summary}
+In this section we take a step back and discuss the main contributions of this thesis and their implications.
 
-\paragraph{A likelihood for the Laplace Approximation}
-We investigated how to properly apply the Laplace Approximation (\acs{LA}) to a diffusion model trained against the simple loss, an open question left by \cite{jazbec_generative_2025}. By reframing the diffusion objective as a noise-prediction regression problem, we showed that the simplified loss $\mathcal{L}_{\mathrm{simple}}$ is equivalent, to the exact negative log-likelihood of that task (\autoref{sec:bayesian_model}), grounding the Hessian used in the \acs{LA} in a well-defined likelihood. 
+\subsection{Evaluation Metrics}
+First, we found that the inception based \acs{FPR} metrics were not reliable and overly compute expensive to evaluate filtering methods on the \acs{ADM} model. Doing so helped interpret an inflation effect observed when reducing the number of samples while filtering.
+We then introduced the \acs{HPS} metric as an independent, human-aligned, per-image evaluation oracle (\autoref{ch:hpsv3}) that also made the \autoref{sub:internal-enc-abla-exp} ablation experiments to find the best internal encoder layer and timestep computationally feasible.
 
-Another analysis clarified the \acs{MLE}-versus-\acs{MAP} mismatch: since no explicit prior is used during training, the prior precision $\gamma$ acts as a post-hoc regularizer for the Hessian inversion rather than a true Bayesian hyperparameter, and it exposes an error term in the \acs{LA} that grows with $\gamma$ (\autoref{sub:la_trained_on_mle}). 
+\subsection{Bayesian Generative Uncertainty Theory}
+To understand the \acs{GU} method, we went back to its theoretical foundation. Some theoretical gaps were identified in \cite{jazbec_generative_2025} (some of them already part of future work). Reframing the diffusion objective as a noise-prediction regression problem instead of a one step image generation task helped reconcile the \acs{LA} approximated Bayesian Framework with the \acs{ADM} training objective $\mathcal{L}_{\mathrm{simple}}$. 
+Doing so exposed the real problems of the original framework: Most notably, only sampling the uncertainty at the last step of a multi-step reverse diffusion process. \autoref{sub:internal-enc-abla-exp} thankfully showed that sampling the uncertainty at $t=0$ should actually perform the best although we did not test combining multiple timesteps.
 
-We also surfaced two further tensions baked into the framework: the possible violation of the \acs{IID} assumption and the gap between single-step and multi-step inference. The later which was addressed in the Internal Features timestep ablation (\autoref{ch:using_internal_encoder}).
+\subsection{Toy Experiment}
+Once the \acs{GU} method was properly formalized, we went on to investigate how it behaved on a simple \textit{Toy model} roughly reproduced from \cite{jazbec_generative_2025}. Because of its small number of parameters, we were able to compute a full Deep Ensemble (\acs{DE}) posterior approximation. To go beyond what \cite{jazbec_generative_2025} did, we also computed the \acs{LLLA} approximation on the \textit{Toy model}. This allowed us to directly compare the \acs{DE} and \acs{LLLA} and realize that \acs{LLLA} missed out on a huge part of the uncertainty captured by \acs{DE} (mode-assignment ambiguity) but was actually stronger at filtering pure out of distribution samples (off-mode). We concluded that one should consider the problem at hand before choosing which approximation to use. 
 
-\paragraph{An independent evaluation oracle}
-Because the \acs{FPR} metrics (FID, Precision, Recall) suffer from several weaknesses: a shared \texttt{Inception-v3} feature space and an inflation effect that demands very large sample batches (\autoref{sub:problems_inception}). To solve those issues without altering the original framework, we introduced an \acs{HPS} metric as an independent, human-aligned, per-image evaluation oracle (\autoref{ch:hpsv3}). It proved a capable filtering metric in its own right, motivating further it's use as an evaluation metric. 
+Another really important finding of this \emph{Toy Experiment}was the confirmation that the Bayesian framework could actually be very good at filtering out hallucinations in contrast to what the Direct Noise Injection (\acs{DNI}) seems to indicate, which further motivates that better posterior approximations should be explored for the \acs{ADM} model in combination with the internal encoder. 
 
-% With this foundation in place we reproduced the central results of \cite{jazbec_generative_2025} as a solid base to build on, and confirmed that adding the missing classifier guidance to the \acs{ADM} improves generation quality as expected \parencite{dhariwal_diffusion_2021}.
+\subsection{The Encoder Uncertainty}
+The central finding is that \acs{GU}, as implemented in \cite{jazbec_generative_2025} for the \acs{ADM}, is better understood as an \textit{encoder-defined off-manifold detector} than as a measure of the diffusion model's posterior spread. Replacing the entire Laplace posterior with simple isotropic pixel-space noise (\acs{DNI}) produced near-identical filtering performance on the \acs{FPR} and \acs{HPS} metrics (\autoref{ch:semantic-encoder}). The formalization in \autoref{sec:formalize_dni_method} explains why: under a first-order Taylor expansion, the per-image uncertainty is proportional to the log-sum of the squared Jacobian norms of the semantic encoder (\autoref{eq:jacobian_uncertainty}). Images on the encoder's manifold sit in stable regions of the encoder, so any small perturbation, Bayesian or random, barely moves the embedding; failed images fall off the manifold, where similar small perturbations lead to large movement in embedding space, the gradient norms explode and the entropy spikes. 
 
-\paragraph{The Toy model rehabilitates the LLLA}
-On the Toy model we revisited the Last-Layer Laplace Approximation (\acs{LLLA}), often dismissed as inadequate for diffusion uncertainty \parencite{gupta_quantifying_2026}. Once properly stabilized, through a high prior (the \acs{ICLA} limit) and/or temperature scaling, the \acs{LLLA} filters hallucinations very effectively, in fact \textit{earlier} in the rejection curve than Deep Ensembles (\acs{DE}) (\autoref{ch:toy_exp_posterior}). 
-However, The two approximations are not interchangeable: anchored to a single basin, the \acs{LLLA} targets off-manifold hallucinations, whereas \acs{DE} members settle into distinct basins and also capture \textit{mode-assignment ambiguity} (samples that each member generates validly but assigns to different modes (\autoref{sec:toy_what_gu_filter})). The choice is therefore application-dependent, cheaper and more targeted with the \acs{LLLA}, broader with \acs{DE}.
+\subsection{The Internal Encoder Features}
 
-% and the \acs{MoLA} framework \parencite{eschenhagen_mixtures_2021} offers a principled way to keep both regimes in a single estimator.
+The issue with the external encoder uncertainty is that the encoder is usually trained on a different dataset than the diffusion model, making the uncertainty score highly sensitive to the wrong training manifold. That made us search for a feature extractor internal to the diffusion model itself. 
 
-\paragraph{The pivot: it is the encoder, not the posterior}
-This is where the framework reframes itself. Replacing the entire Laplace posterior with simple isotropic pixel-space noise (Direct Noise Injection, \acs{DNI}) produced near-identical filtering performance on the \acs{ADM} \acs{FPR} and \acs{HPS} metrics (\autoref{ch:semantic-encoder}). The formalization in \autoref{sec:formalize_dni_method} explains why: under a first-order Taylor expansion, the per-image uncertainty is proportional to the log-sum of the squared Jacobian norms of the semantic encoder (\autoref{eq:jacobian_uncertainty}). Images on the encoder's manifold sit in Lipschitz-stable regions, so any small perturbation, Bayesian or random, barely moves the embedding. However, failed images fall off the manifold, where the gradient norms explode and the entropy spikes. \acs{GU} as defined in \cite{jazbec_generative_2025} seems to be more of a \textit{encoder-defined off-manifold detector} than a measure of the diffusion model's posterior spread.
+Using the output of an early \acs{ADM} UNET Decoder layer exceeded expectation on the \acs{FPR} metrics performing much better than every other baseline considered in this thesis and \cite{jazbec_generative_2025}. 
+
+The performance on the \acs{HPS} metric however was worse than with the \acs{CLIP} external encoder, which further confirms the role the training manifold of the encoder plays in the score. The \acs{CLIP} encoder and the HPSv3 vision language model are both trained on datasets that go beyond ImageNet contrary to the \acs{ADM}. 
+
+Crucially, this is also where the first sign of the Bayesian posterior \textit{surviving} the encoder appeared. With the external \acs{CLIP} encoder, the posterior signal seemed washed out, \acs{DNI} and the full Laplace posterior were interchangeable. With the internal encoder, the Bayesian framework appears to add value beyond what noise injection alone provides, even when heavily approximated. 
+We would need to run the \acs{DNI} method with the internal encoder (\acs{IDNI}) to confirm this hypothesis but this is a very encouraging result for the Bayesian framework on the \acs{ADM}: it suggests the posterior signal was never absent, only invisible to an external encoder not calibrated to structural perturbations specific to the diffusion model, and that an encoder aligned with the model's own representation can finally let it through. It directly corroborates the \textit{Toy model} findings, where, with no encoder in the way, the Bayesian posterior filtered hallucinations effectively.
 
 % This also resolves an apparent contradiction in the thesis. The \acs{LLLA} filters hallucinations well on the Toy model yet is interchangeable with noise on the \acs{ADM}, because on the Toy model uncertainty is read directly in the 2D output space with no encoder mediating it, whereas on the \acs{ADM} the \acs{CLIP} encoder sits between the model and the score. The tiny last-layer weight perturbations reach that encoder as pixel-level changes functionally indistinguishable from \acs{DNI}, and the \acs{LLLA}'s curvature information, already diluted by its heavy approximations, is drowned out. The surviving Pearson correlation $r = 0.532$ between the two scores (\autoref{fig:la_role_corr}) confirms the reading: a weak posterior signal does survive the encoder, but not enough to matter at the level of aggregate metrics.
 
-\paragraph{Restoring a model-intrinsic signal}
-If the encoder governs the signal, then the encoder is a design choice, not an afterthought. Replacing \acs{CLIP} with feature maps from the \acs{ADM}'s own U-Net decoder (\autoref{ch:using_internal_encoder}), with \texttt{output\_blocks.1.1} at timestep $t=5$ identified by ablation as the best extraction point, retains a substantially lower FID and significantly higher Recall through filtering, because it is calibrated to what the \acs{ADM} has and has not learned. \acs{CLIP}, conversely, wins on \acs{HPS} \acs{AURC} because its manifold is closer to that of the \acs{HPS} model. Three manifolds are in play at once, the generator's, the uncertainty encoder's, and the evaluation metric's, and the method performs best on whichever criterion those manifolds align with. 
+% \paragraph{The encoder is a design choice, and three manifolds are in play}
+% If the encoder governs the signal, then the encoder is a design choice, not an afterthought. Replacing \acs{CLIP} with feature maps from the \acs{ADM}'s own U-Net decoder (\autoref{ch:using_internal_encoder}), with \texttt{output\_blocks.1.1} at timestep $t=5$ identified by ablation as the best extraction point, retains a substantially lower FID and significantly higher Recall through filtering, because it is calibrated to what the \acs{ADM} has and has not learned. \acs{CLIP}, conversely, wins on \acs{HPS} \acs{AURC} because its manifold is closer to that of the \acs{HPS} model. Three manifolds are therefore in play at once, the generator's, the uncertainty encoder's, and the evaluation metric's, and the method performs best on whichever criterion those manifolds happen to align with. There is no single ``correct'' uncertainty score, only alignment between these three geometries.
 % The same logic retroactively explains why Realism and Rarity sometimes beat \acs{GU} on \acs{FPR} metrics in \autoref{ch:reproduce_adm}: they share the \texttt{Inception-v3} space with the evaluation itself.
+
+% \section{Summary of Contributions}
+
+% Concretely, this thesis delivered the following.
+
+% \paragraph{A likelihood for the Laplace Approximation}
+% We investigated how to properly apply the Laplace Approximation (\acs{LA}) to a diffusion model trained against the simple loss, an open question left by \cite{jazbec_generative_2025}. By reframing the diffusion objective as a noise-prediction regression problem, we showed that the simplified loss $\mathcal{L}_{\mathrm{simple}}$ is equivalent to the exact negative log-likelihood of that task (\autoref{sec:bayesian_model}), grounding the Hessian used in the \acs{LA} in a well-defined likelihood. A further analysis clarified the \acs{MLE}-versus-\acs{MAP} mismatch: since no explicit prior is used during training, the prior precision $\gamma$ acts as a post-hoc regularizer for the Hessian inversion rather than a true Bayesian hyperparameter, and it exposes an error term in the \acs{LA} that grows with $\gamma$ (\autoref{sub:la_trained_on_mle}). We also surfaced two further tensions baked into the framework: the possible violation of the \acs{IID} assumption and the gap between single-step and multi-step inference, the latter of which was addressed in the Internal Features timestep ablation (\autoref{ch:using_internal_encoder}).
+
+% \paragraph{An independent evaluation oracle}
+% The \acs{FPR} metrics (FID, Precision, Recall) suffer from several weaknesses: a shared \texttt{Inception-v3} feature space and an inflation effect that demands very large sample batches (\autoref{sub:problems_inception}). To address those issues without altering the original framework, we introduced an \acs{HPS} metric as an independent, human-aligned, per-image evaluation oracle (\autoref{ch:hpsv3}). It proved a capable filtering metric in its own right, motivating its further use as an evaluation metric.
+
+% \paragraph{The Toy model rehabilitates the LLLA}
+% On the Toy model we revisited the Last-Layer Laplace Approximation (\acs{LLLA}), often dismissed as inadequate for diffusion uncertainty \parencite{gupta_quantifying_2026}. Once properly stabilized, through a high prior (the \acs{ICLA} limit) and/or temperature scaling, the \acs{LLLA} filters hallucinations very effectively, in fact \textit{earlier} in the rejection curve than Deep Ensembles (\acs{DE}) (\autoref{ch:toy_exp_posterior}). The two approximations are not interchangeable, however: anchored to a single basin, the \acs{LLLA} targets off-manifold hallucinations, whereas \acs{DE} members settle into distinct basins and also capture \textit{mode-assignment ambiguity}, samples that each member generates validly but assigns to different modes (\autoref{sec:toy_what_gu_filter}). The choice is therefore application-dependent: cheaper and more targeted with the \acs{LLLA}, broader with \acs{DE}.
+
+% \paragraph{The encoder hypothesis, established two ways}
+% The discussion above rests on two concrete results. On the \acs{ADM}, \acs{DNI} matched the full Laplace posterior across the aggregate \acs{FPR} and \acs{HPS} metrics (\autoref{ch:semantic-encoder}), isolating the encoder's geometry as the dominant driver of the score; and swapping \acs{CLIP} for the model's own internal U-Net features changed which metric the filter wins on (\autoref{ch:using_internal_encoder}), showing the encoder to be a tunable design choice rather than a fixed component. Together they ground the reading that \acs{GU} on the \acs{ADM} is carried by the encoder, not the posterior.
 
 \section{Notable Limitations}
 
-The semantic encoder being a mandatory part of the \acs{ADM} uncertainty pipeline is also the central confound of this work: because every \acs{ADM} uncertainty score is read through it, we could never fully isolate the contribution of the Bayesian posterior from that of the encoder's geometry, and our conclusions about the posterior are necessarily drawn through that lens. The contribution of the Bayesian posterior was only proven to work for the Toy model where the encoder is reduced to an identity mapping.
+The semantic encoder being a mandatory part of the \acs{ADM} uncertainty pipeline is also the central problem of this work: because every \acs{ADM} uncertainty score is read through it, we could never fully isolate the contribution of the Bayesian posterior from that of the encoder's geometry, and our conclusions about the posterior are necessarily drawn through that lens. The contribution of the Bayesian posterior was only fully proven to work for the \emph{Toy model}, where the encoder is reduced to an identity mapping. We are therefore still unsure of the exact role of the Bayesian posterior in the \acs{ADM} uncertainty score even though \autoref{ch:using_internal_encoder} suggests that it adds value when the encoder is able to understand the structural changes made in the generated images when sampling from the posterior predictive. The \acs{IDNI} experiment (\autoref{sec:ccl_notable_fw_dir}) on the \acs{ADM} would help in that regard. 
 
-Several other limitations include: 
+Several other limitations include:
 
 \begin{itemize}
+    \item The medical-imaging motivation of \autoref{cha:introduction} was not validated empirically.
+    \item The unresolved \acs{MLE}-\acs{MAP} mismatch leading to an error term in the \acs{LA}.
+    \item The \acs{IID} assumption of the \acs{LA} may be violated by the multi-step nature of the diffusion process which makes the dataset include intermediate samples.
     \item The lack of confidence intervals for the \acs{ADM} experiments, as re-running the roughly 20h generation pipeline was prohibitive, so all reported numbers are point estimates.
     \item The toy experiment of \cite{jazbec_generative_2025} could not be reproduced exactly.
-    \item Every large-scale experiment used a single architecture (\acs{ADM} $128\times128$ on ImageNet), leaving open whether the findings transfer to latent diffusion, transformer-based denoisers, or flow-matching models. 
-    \item The medical-imaging motivation of \autoref{cha:introduction} was not validated empirically. 
-    \item More expressive posterior approximations were not implemented, so it remains unknown whether they would yield a signal strong enough to overcome the encoder bottleneck.
 \end{itemize}
 
 \section{Notable Future Work Direction}
+\label{sec:ccl_notable_fw_dir}
 
-What seems to be the most promising direction, and the one we would pursue first, is to combine the internal U-Net encoder of \autoref{ch:using_internal_encoder} with the \acs{DNI} method of \autoref{ch:semantic-encoder}. This pairing keeps the best of both findings: it stays tied to the diffusion model's own learned manifold while bypassing the expensive Bayesian posterior entirely. The result is a cheap, model-intrinsic quality filter requiring no posterior, no ensemble, and no external encoder, only a handful of forward passes through a single internal layer.
+The direct continuation of this thesis would be to combine the internal encoder with the \acs{DNI} method. In this section, we go over why this could be a very promising direction for future work.
 
-The recipe assumes only that the model exposes an internal layer holding a compact, low-dimensional representation of its output, which the manifold hypothesis makes reasonable for most generative models \parencite{whiteley_statistical_2026}. For such a layer one would:
+\acs{DNI} fueled internal encoders could provide an uncertainty score with the following advantages:
+\begin{enumerate}
+    \item \textbf{Universal}, likely to work with generative models beyond diffusion \label{enum:fw_universal}
+    \item Extremely \textbf{cheap} to compute, possibly only requiring a handful of forward passes through a single internal layer. \label{enum:fw_cheap}
+    \item Does not need access to the original training data unlike \acs{GU}, Realism and Rarity because it already contains that data into it's own training manifold, which we probe with \acs{DNI}. Which is very useful because some open-weights models do not provide access to their training dataset.
+\end{enumerate}  
+
+For the remainder of this section, we will call this method Internal Direct Noise Injection (\acs{IDNI}).
+
+% The most promising direction, and the one we would pursue first, is to combine the internal U-Net encoder of \autoref{ch:using_internal_encoder} with the \acs{DNI} method of \autoref{ch:semantic-encoder}. This pairing keeps the best of both findings: it stays tied to the diffusion model's own learned manifold while bypassing the expensive Bayesian posterior entirely. The result is a cheap, model-intrinsic quality filter requiring no posterior, no ensemble, and no external encoder, only a handful of forward passes through a single internal layer.
+
+\subsection{Internal Features are Widely Available}
+To address \autoref{enum:fw_universal}, we need to argue that most generative models have internal layers holding a semantically rich representation of its output. The manifold hypothesis \parencite{whiteley_statistical_2026} makes this assumption reasonable.
+
+\begin{tcolorbox}[colback=gray!10!white,colframe=gray!50!black,sharp corners]
+``The manifold hypothesis is a widely accepted tenet of machine learning which asserts that nominally high-dimensional data are in fact concentrated near a low-dimensional manifold, embedded in high-dimensional space.'' \parencite{whiteley_statistical_2026}
+\end{tcolorbox}
+
+Following this definition, we can assume that most generative models take advantage of the manifold hypothesis by having internal layers to hold that low-dimensional representation of the data. Therefore making this method ``\textbf{universal}''.
+
+% The recipe assumes the model exposes an internal layer holding a compressed, low-dimensional representation of its output. The manifold hypothesis makes that assumption reasonable in general.
+
+\subsection{The Recipe}
+Let's now show why it's extremely cheap to compute (\autoref{enum:fw_cheap}) by providing a recipe.
+% The recipe assumes that the model exposes an internal layer holding a compact, low-dimensional representation of its output, which the manifold hypothesis makes reasonable for most generative models \parencite{whiteley_statistical_2026}. For such a layer one would:
 
 \begin{enumerate}
-    \item choose a layer holding a low-dimensional representation of the data;
-    \item during generation, save that layer's input $x_{\text{base}}$ and output $y_{\text{base}}$;
-    \item perturb $x_{\text{base}}$ with noise to create $\mathrm{M}$ inputs $x_1, \ldots, x_\mathrm{M}$;
-    \item pass them through the remainder of the layer to obtain $y_1, \ldots, y_\mathrm{M}$;
-    \item compute the entropy of $y_{\text{base}}, y_1, \ldots, y_\mathrm{M}$ and use it as the uncertainty score.
+    \item choose a layer holding a low-dimensional representation of the data
+    \item during generation, save that layer's input $x_{\text{base}}$ and output $y_{\text{base}}$
+    \item perturb $x_{\text{base}}$ with noise to create $\mathrm{M}$ inputs $x_1, \ldots, x_\mathrm{M}$
+    \item pass them through the remainder of the layer to obtain $y_1, \ldots, y_\mathrm{M}$
+    \item apply some kind of pooling to reduce the vectors $y_{\text{base},1,\dots,\mathrm{M}}$ of feature maps to flat vectors $\hat{y}_{\text{base},1,\dots,\mathrm{M}}$
+    \item compute the entropy of $\hat{y}_{\text{base}}, \hat{y}_1, \ldots, \hat{y}_\mathrm{M}$ and use it as the uncertainty score
 \end{enumerate}
 
-It is worth being precise about the trade-off. A properly specified posterior, or a Deep Ensemble, measures the model's epistemic uncertainty in an interpretable, well-established way and would almost certainly be more informative, but its cost makes it impractical outside critical applications such as medical imaging. \acs{DNI} sits at the opposite end: as formalized in \autoref{sec:formalize_dni_method}, it does not probe the weight-space posterior at all but rests on the assumption that the chosen layer's Jacobian grows significantly for out-of-distribution inputs (off-manifold samples land in locally unstable regions of the representation). Where that holds, the score is an effective, architecture-agnostic probe of whether a generated output lies far from the manifold the model was trained on. 
+\subsection{Comparison with Bayesian Method}
 
-Whether a stronger posterior approximation, such as the Riemannian approach of \parencite{gegenfurtner_reducing_2026}, could produce a signal that survives the encoder bottleneck and adds value beyond this cheap baseline remains also a very compelling future work direction.
+\autoref{ch:semantic-encoder} showed that the \acs{DNI} method was able to match the \acs{LLLA} method on the \acs{ADM} model. However, we hypothesize that the external \acs{CLIP} may not be able to understand the structural changes the Bayesian posterior predictive makes in the generated images. It is likely that the internal encoder understands those structural changes much better. The \acs{DNI} method would therefore not perform as close to the full Bayesian method in the context of the internal encoder as it did in the context of the external \acs{CLIP} encoder.
+
+% It is worth being precise about the trade-off. A properly specified posterior, or a Deep Ensemble, is well established to actually measure epistemic uncertainty. 
+
+% and would almost certainly be more informative. In the context of diffusion models, sampling from a bayesian posterior predictive directly probes the model's confidence in the structure generated
+Even if the Bayesian posterior predictive was significantly more informative than \acs{IDNI}, its computational cost would still be a major drawback. The \acs{LLLA} method requires multiple full reverse diffusion processes to sample the posterior predictive which multiplies the already expensive generation time by $\mathrm{M+1}$. On the other hand the \acs{IDNI} method only requires an additional handful of forward passes through a single layer of the model.
+
+\paragraph{What they measure}
+Before making a choice on which method to use, we should really think about what they each measure.
+
+\acs{DNI} and by extension \acs{IDNI} relies on the assumption that the semantic encoder layer's Jacobian grows significantly for out-of-distribution inputs (off-manifold samples land in locally unstable regions of the representation) \parencite{novak_sensitivity_2018}. When that holds, the score is an effective, architecture-agnostic probe of whether a generated output lies far from the manifold the model was trained on.
+
+On the other hand, a properly applied Bayesian method perturbs the model's weights in a way that generates new models that are consistent with the training data. We hypothesize that when using those models to generate images, slight structural changes appear in the generated images, the fewer changes there are, the more confident the model is in its generation.
+
+For critical applications such as medical imaging, we believe that the Bayesian method is the right choice for a theoretically well-grounded uncertainty score. \acs{IDNI} would be an easy to compute score to get an idea of how far the generated output is from the training manifold of the model that could be part of most generative models.
+
+\paragraph{Future Work}
+
+Direct future work could go in both directions, either improving the Bayesian posterior approximation with methods such as the Riemannian approach \parencite{gegenfurtner_reducing_2026} or trying the \acs{IDNI} method.
+
+% Whether a stronger posterior approximation, such as the Riemannian approach of \parencite{gegenfurtner_reducing_2026}, could produce a signal that survives the encoder bottleneck and adds value beyond this cheap baseline remains a very compelling future work direction.
+
+% \acs{IDNI}'s single pass through the a single layer is not enough to evaluate the uncertainty of a full diffusion model. It can only be seen as a proxy for the model's learned manifold. The hope is that 
+
+\paragraph{A note on prior work}
+
+Previous work also explored related ideas to \acs{IDNI}.
+\cite{vita_diffusion_2024} filter diffusion samples using the variance of the UNET's denoising prediction (\autoref{sec:bg_diffusion}) under a diffusion-specific perturbation. The crucial distinction from \acs{IDNI} lies in the representation in which the variance is read. The UNET predicts the noise to remove, equivalently the score $\nabla_x \log p(x)$; this prediction is in the same high-dimensional space as the image itself. \cite{vita_diffusion_2024} read their variance directly in this full-resolution \textit{score space}, and never touch the network's internal feature activations. \acs{IDNI} instead reads it in a low-dimensional semantic-embedding space (the model's own internal features).
+
+It should be noted that \cite{vita_diffusion_2024}'s Aleatoric Uncertainty method was tried in \cite{jazbec_generative_2025} \acs{ADM} experiment and was found to be far less effective than the \acs{GU} method (and by extension our internal encoder method with \acs{LLLA}) on the \acs{FPR} metrics.
+
+
+\section{Conclusion}
+
+This thesis set out to understand what Generative Uncertainty actually measures on a real diffusion model, and the answer turned out to be more subtle than the original framework suggested. By grounding the Laplace Approximation in a proper noise-prediction likelihood, building an independent human-aligned evaluation oracle, and investigating the method on both a \textit{Toy Model} and the \acs{ADM}, we arrived at a new insight: on the \acs{ADM}, the uncertainty score was carried by the \textit{geometry of the encoder}, not by the Bayesian posterior. But \acs{DNI} matching the full Laplace posterior is likely not a failure of the Bayesian framework, it is the encoder revealing itself as a dominant component of the pipeline.
+
+That reframing is the contribution we care about most. It turns the encoder from an implementation detail into a crucial design choice, and it points to a concrete, cheap, and potentially universal alternative, the internal encoder probed with \acs{DNI} (\acs{IDNI}). It also reopens the case for the Bayesian posterior. On the toy model, where no encoder mediates the score, the posterior \textit{does} filter hallucinations, and it does so well; on the \acs{ADM} with the external \acs{CLIP} encoder, that signal was washed out entirely. The most encouraging result of this thesis is that, when we swapped in the model's own internal encoder, the posterior seems to add value again, the first evidence that the Bayesian signal can survive the encoder bottleneck once the encoder is aligned with the model's representation. Pushing that signal further, through a richer, better approximated posterior, better internal features, or both, is a question we would pursue next.
+
+In conclusion, \cite{jazbec_generative_2025} generative uncertainty for diffusion models is real and useful, but on the \acs{ADM} it had so far not been measuring the right thing. The investigation that lead to this insight also uncovered a potentially universal way to get a feature extractor that can actually be used to compute a meaningful uncertainty score by being aligned with the same training manifold as the generative model. It also lead to a potentially universal way to cheaply compute an uncertainty score that roughly measures how far a generated output is from the training manifold of the model.
+
+% Separating the encoder's geometry from the model's epistemic uncertainty is, we believe, the key to turning these scores into the trustworthy, theoretically grounded quality filters that high-stakes applications such as medical imaging will ultimately demand.
+

@@ -1,39 +1,41 @@
 \chapter{Reproducing the ADM Experiment}
 \label{ch:reproduce_adm}
 
-The following experiment was originally conducted in \cite{jazbec_generative_2025} to prove the applicability and usefulness of generative uncertainty in a large scale, state of the art diffusion model like \acs{ADM} against other baselines on the \acs{FPR} (FID, Precision and Recall) metrics. The idea here will be to prove that we can reproduce their experiment and get the same results. That will allow us to have the proper foundation to start extending their framework and conducting new experiments.
+The following experiment was originally conducted in \cite{jazbec_generative_2025} to prove the applicability and usefulness of \acs{GU} in a large scale, \acs{SOTA} diffusion model like \acs{ADM} against other baselines on the \acs{FPR} metrics. The idea here will be to prove that we can reproduce their experiment and get the same results. That will allow us to have the proper foundation to start extending their framework and conducting new experiments.
 
 \section{Setup}
 
 \paragraph{Pipeline}
-The idea here is to take the $\mathrm{M}+1=6$ ADM model weights including the base model and the 5 \acs{LLLA} sampled models, use a dataset of $12032$ noise samples through those $6$ models to get 12000 generated images for each model. 
+The idea here is to first compute \acs{GU} as described in \autoref{ch:gu_theory} with $\mathrm{M}+1=6$ models (base model and 5 \acs{LLLA} sampled models) and create a dataset of $12032$ generated and scored images. 
 
-The objective is to compare Generative Uncertainty to other baselines filtering metrics (Random, Rarity, Realism, \autoref{sec:inception_metrics}).
-Once we have the $(\mathrm{M}+1) \times 12032$ images, we evaluate the baselines filtering metrics of each of the $12032$ images. We then filter out chunks of the $12032$ images with respect to each filtering metric (taking out the images than performs worse on those filtering metric first). The effect of that filtering is then measured on the \acs{FPR} metrics. 
+% The idea here is to take the $\mathrm{M}+1=6$ ADM model weights including the base model and the 5 \acs{LLLA} sampled models, use a dataset of $12032$ noise samples through those $6$ models to get $12032$ generated images for each model. 
+
+The objective is then to compare \acs{GU} to other baselines filtering metrics (\emph{Random}, \emph{Rarity}, \emph{Realism}, \autoref{sec:inception_metrics}).
+Once we have the $(\mathrm{M}+1) \times 12032$ images, we evaluate the baselines filtering metrics on each of the $12032$ images. We then filter out chunks of the $12032$ images with respect to each filtering metric (taking out the images that perform worse on those filtering metrics first). The effect of that filtering is then measured on the \acs{FPR} metrics. 
 
 % We measure the effect of filtering of by taking subset of $11000, 10000,..., 6000$ images and measuring the \acs{FPR} for each.
 
 \paragraph{Implementation}
-Thankfully, the original experiment from \cite{jazbec_generative_2025} was mostly already in their \texttt{github}. Although the realism baseline was already there, it was not fully implemented in the experiment's pipeline, the rarity baseline was not implemented at all. Some modifications were therefore made and are available in the \texttt{github} of this thesis.
+Thankfully, the original experiment from \cite{jazbec_generative_2025} was mostly already in their \texttt{github}. Although the \emph{Realism} baseline was already there, it was not fully implemented in the experiment's pipeline, the \emph{Rarity} baseline was not implemented at all. Some modifications were therefore made and are available in the \texttt{GitHub} of this thesis.
 
 \paragraph{Confidence Intervals}
-It also worth noting that our reproduction of \parencite{jazbec_generative_2025} experiment did not include confidence intervals. Doing so would necessitate to run the very expensive\footnote{A full pass of the $\mathrm{M}+1=6$ models generating 12000 images each takes around 20 hours} image generation pipeline multiple times. 
-We see on \autoref{fig:jazbec_exp} that the confidence intervals stay relatively small anyway and are not strictly required to see if a method performs better than another one. For this section in particular, we only needed to verify that our results were compatible with theirs.
+It is also worth noting that our reproduction of the \parencite{jazbec_generative_2025} experiment did not include confidence intervals. Doing so would necessitate running the very expensive\footnote{A full pass of the $\mathrm{M}+1=6$ models generating $12032$ images each takes around 20 hours on a DTU HPC \texttt{Tesla A100}} image generation pipeline multiple times. 
+We see on \autoref{fig:jazbec_exp} that the confidence intervals stay relatively small anyway and are not strictly required to see if a method performs better than another one. For this experiment in particular, we only needed to verify that our results were compatible with theirs.
 
 \section{Experiment results}
 
-We will first show the original figure from \parencite{jazbec_generative_2025} with \autoref{fig:jazbec_exp}
+We will first show the original figure from \parencite{jazbec_generative_2025} as reference with \autoref{fig:jazbec_exp}
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/adm_experiment/jazbec_exp.png}
-    \caption{Original experiment results from \cite{jazbec_generative_2025} appendix C.5. The unexpected steep rise in FID when reducing the number of images (even with the random baseline) is explained in \autoref{sub:problems_inception}}
+    \caption{Original experiment results from \cite{jazbec_generative_2025} appendix C.5.}
     \label{fig:jazbec_exp}
 \end{figure}
 
-Then we take a look at our results with \autoref{fig:classifier_free}. We see that overall the behavior of all filtering baselines on all \acs{FPR} metrics are very similar to the original experiment. We can however see that Generative Uncertainty performed better on the FID metric in our experiment than it had in \parencite{jazbec_generative_2025}. This is unexpected since the generative uncertainty baseline is the only one that was already fully implemented in the original code and was not modified. 
+Then we take a look at our results with \autoref{fig:classifier_free}. We see that overall the behavior of all filtering baselines on all \acs{FPR} metrics is very similar to the original experiment. We can however see that \acs{GU} performed better on the \acs{FID} metric in our experiment than it had in \parencite{jazbec_generative_2025}. This is somewhat unexpected since the \acs{GU} baseline is the only one that was already fully implemented in the original code and was not modified. Encouragingly, the \emph{Precision} and \emph{Recall} metric show a very similar curve for \acs{GU} between the original experiment and our reproduction.
 
-Minor differences can be explained by the ImageNet dataset instance used.
+Minor differences can also be explained by the ImageNet dataset instance used.
 
 \begin{figure}[!htbp]
     \centering
@@ -45,10 +47,10 @@ Minor differences can be explained by the ImageNet dataset instance used.
 \subsection{Problems with the Inception Metrics}
 \label{sub:show_n_inception_problem}
 
-As teased in \autoref{sub:problems_inception}, we now address the effect of reducing $N$. To isolate this effect, we can look at the \texttt{random} baseline which randomly and progressively removes samples from $|\boldsymbol\Phi_g|$. In theory it should stay flat when reducing $N$, but we can clearly see that the FID and Recall metrics rising for the \texttt{random} baseline.
+As teased in \autoref{sub:problems_inception}, we now address the effect of reducing $N$. To isolate this effect, we can look at the \texttt{random} baseline which randomly and progressively removes samples from $\boldsymbol\Phi_g$. In theory it should stay flat when reducing $N$, but we can clearly see the \acs{FID} and \emph{Recall} metrics rising for the \texttt{random} baseline.
 
 \begin{tcolorbox}[colback=red!10!white,colframe=red!50!black,sharp corners]
-For the remaining of the thesis, before interpreting the results of any filtering method, we will have to take into account the artificial rise in FID and Recall when reducing $N$ by looking at the \texttt{random} baseline first and correcting the results of the filtering method by how much the \texttt{random} baseline has risen.
+For the remainder of the thesis, before interpreting the results of any filtering method, we will have to take into account the artificial rise in \acs{FID} and \emph{Recall} when reducing $N$ by looking at the \texttt{random} baseline first and correcting the results of the filtering method by how much the \texttt{random} baseline has risen.
 \warning We don't believe we can truly isolate the effect of reducing $N$ this way, especially with such a small dataset to begin with, but we believe this gives us a rough idea.
 \end{tcolorbox}
 
