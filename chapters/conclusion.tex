@@ -26,7 +26,7 @@ The central finding is that \acs{GU}, as implemented in \cite{jazbec_generative_
 
 The issue with the external encoder uncertainty is that the encoder is usually trained on a different dataset than the diffusion model, making the uncertainty score highly sensitive to the wrong training manifold. That made us search for a feature extractor internal to the diffusion model itself. 
 
-Using the output of an early \acs{ADM} UNET Decoder layer exceeded expectation on the \acs{FPR} metrics performing much better than every other baseline considered in this thesis and \cite{jazbec_generative_2025}. 
+Using the output of an early \acs{ADM} U-Net Decoder layer exceeded expectation on the \acs{FPR} metrics performing much better than every other baseline considered in this thesis and \cite{jazbec_generative_2025}. 
 
 The performance on the \acs{HPS} metric however was worse than with the \acs{CLIP} external encoder, which further confirms the role the training manifold of the encoder plays in the score. The \acs{CLIP} encoder and the HPSv3 vision language model are both trained on datasets that go beyond ImageNet contrary to the \acs{ADM}. 
 
@@ -138,7 +138,7 @@ Direct future work could go in both directions, either improving the Bayesian po
 \paragraph{A note on prior work}
 
 Previous work also explored related ideas to \acs{IDNI}.
-\cite{vita_diffusion_2024} filter diffusion samples using the variance of the UNET's denoising prediction (\autoref{sec:bg_diffusion}) under a diffusion-specific perturbation. The crucial distinction from \acs{IDNI} lies in the representation in which the variance is read. The UNET predicts the noise to remove, equivalently the score $\nabla_x \log p(x)$; this prediction is in the same high-dimensional space as the image itself. \cite{vita_diffusion_2024} read their variance directly in this full-resolution \textit{score space}, and never touch the network's internal feature activations. \acs{IDNI} instead reads it in a low-dimensional semantic-embedding space (the model's own internal features).
+\cite{vita_diffusion_2024} filter diffusion samples using the variance of the U-Net's denoising prediction (\autoref{sec:bg_diffusion}) under a diffusion-specific perturbation. The crucial distinction from \acs{IDNI} lies in the representation in which the variance is read. The U-Net predicts the noise to remove, equivalently the score $\nabla_x \log p(x)$; this prediction is in the same high-dimensional space as the image itself. \cite{vita_diffusion_2024} read their variance directly in this full-resolution \textit{score space}, and never touch the network's internal feature activations. \acs{IDNI} instead reads it in a low-dimensional semantic-embedding space (the model's own internal features).
 
 It should be noted that \cite{vita_diffusion_2024}'s Aleatoric Uncertainty method was tried in \cite{jazbec_generative_2025} \acs{ADM} experiment and was found to be far less effective than the \acs{GU} method (and by extension our internal encoder method with \acs{LLLA}) on the \acs{FPR} metrics.
 

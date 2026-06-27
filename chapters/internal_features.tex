@@ -167,27 +167,27 @@ We can take a closer look at the \acs{HPS} \acs{AURC} for \texttt{output\_block.
 The observation that $t=0$ should be the best timestep at which to compute uncertainty helps justify \cite{jazbec_generative_2025} approach to only track generative uncertainty at the last step of the reverse diffusion process instead of during whole process (\autoref{sub:gu_theory_issue_multi_step}).
 \end{tcolorbox}
 
-\paragraph{UNET vs CLIP on the AURC HPSv3 metric}
-Let's now compare the UNET Internal Sub-Module \texttt{output\_block.1.1} at $t=5$ to the \acs{CLIP} external feature extractor. We can see on \autoref{fig:aurc_clip_unet} that despite not being as good as \acs{CLIP} we manage to remain surprisingly close in the lower rejection rates.
+\paragraph{U-Net vs CLIP on the AURC HPSv3 metric}
+Let's now compare the U-Net Internal Sub-Module \texttt{output\_block.1.1} at $t=5$ to the \acs{CLIP} external feature extractor. We can see on \autoref{fig:aurc_clip_unet} that despite not being as good as \acs{CLIP} we manage to remain surprisingly close in the lower rejection rates.
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/internal/aurc_clip_unet.pdf}
-    \caption{HPSv3 Rejection Curve comparing the uncertainty we get when using the \acs{CLIP} encoder against the Internal UNET encoder}
+    \caption{HPSv3 Rejection Curve comparing the uncertainty we get when using the \acs{CLIP} encoder against the Internal U-Net encoder}
     \label{fig:aurc_clip_unet}
 \end{figure}
 
 It's not so surprising that \acs{CLIP} works better at filtering for an \acs{HPS} metric.
-HPSv3 and \acs{CLIP} were both trained on a dataset of natural images that goes beyond what ImageNet contains. Whereas our Internal UNET encoder from \acs{ADM} was only trained on ImageNet. As we've seen in \autoref{ch:semantic-encoder}, the uncertainty score is largely influenced by the training manifold of the encoder, \acs{CLIP} having a training manifold closer to the HPSv3 model than \acs{ADM} gives \acs{CLIP} an advantage over the Internal UNET on the HPSv3 metric specifically.
+HPSv3 and \acs{CLIP} were both trained on a dataset of natural images that goes beyond what ImageNet contains. Whereas our Internal U-Net encoder from \acs{ADM} was only trained on ImageNet. As we've seen in \autoref{ch:semantic-encoder}, the uncertainty score is largely influenced by the training manifold of the encoder, \acs{CLIP} having a training manifold closer to the HPSv3 model than \acs{ADM} gives \acs{CLIP} an advantage over the Internal U-Net on the HPSv3 metric specifically.
 
-\paragraph{UNET vs CLIP on the FID, Precision and Recall metrics}
-Let's now compare \acs{CLIP} and UNET Internal on the \acs{FPR} metrics \autoref{sec:inception_metrics}:
+\paragraph{U-Net vs CLIP on the FID, Precision and Recall metrics}
+Let's now compare \acs{CLIP} and U-Net Internal on the \acs{FPR} metrics \autoref{sec:inception_metrics}:
 
 FID for instance is comparing the statistical distribution of a large subset of the reference ImageNet dataset with a subset of the \acs{ADM} generated images (The subset is created by removing the highest uncertainty images first).
-We expect Internal UNET to perform better on those metrics since it is made to filter out images that are out of the training manifold of \acs{ADM} itself.
+We expect Internal U-Net to perform better on those metrics since it is made to filter out images that are out of the training manifold of \acs{ADM} itself.
 \autoref{fig:unet_vs_clip_fpr} mostly confirms this: 
 \begin{itemize}
-    \item \acs{FID}: Remains lower than \acs{CLIP} for longer, meaning the UNET uncertainty understands better what is not a valid sample with respect to the ImageNet dataset statistical distribution.
+    \item \acs{FID}: Remains lower than \acs{CLIP} for longer, meaning the U-Net uncertainty understands better what is not a valid sample with respect to the ImageNet dataset statistical distribution.
     \item \emph{Recall}: Remains much higher, we manage to maintain more diversity during the filtering.
     \item \emph{Precision}: The cost of higher recall is usually linked to a lower precision, which is also the case here, but we manage to not lose too much here.
 \end{itemize}
@@ -195,7 +195,7 @@ We expect Internal UNET to perform better on those metrics since it is made to f
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.98\linewidth]{figures/internal/unet_vs_clip_fpr.pdf}
-    \caption{Comparing the uncertainty we get when using the CLIP encoder against the Internal UNET encoder on the \acs{FPR} metrics. \warning as previously explained in \autoref{sub:problems_inception}, the \texttt{random} baseline should be flat, it's growth roughly represents the bias induced by reducing the number of samples that affects all filtering baselines}
+    \caption{Comparing the uncertainty we get when using the CLIP encoder against the Internal U-Net encoder on the \acs{FPR} metrics. \warning as previously explained in \autoref{sub:problems_inception}, the \texttt{random} baseline should be flat, it's growth roughly represents the bias induced by reducing the number of samples that affects all filtering baselines}
     \label{fig:unet_vs_clip_fpr}
 \end{figure}
 
